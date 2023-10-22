@@ -1,2 +1,9 @@
 flask>=2.0.0
 gunicorn>=20.1.0
+nltk
+pandas
+tensorflow
+scikit-learn
+numpy
+flask-cors
+pymysql
