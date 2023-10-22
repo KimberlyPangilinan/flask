@@ -1,4 +1,4 @@
-flask>=2.0.0
+flask
 gunicorn>=20.1.0
 nltk
 pandas
