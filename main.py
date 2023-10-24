@@ -66,19 +66,23 @@ def get_movie_recommendations( movie_title, similarity_matrix):
 
     return recommended_movies
 
-
 @app.route('/movies/<string:movieTitle>', methods=['GET'])
 def get_movies_by_title(movieTitle):
-    with db.cursor() as cursor:
-        # Execute an SQL query to fetch the list of movies matching the provided title
-        cursor.execute('SELECT * FROM movies WHERE names LIKE %s', (f"%{movieTitle}%",))  
-        
-        # Fetch all the movie records
-        data = cursor.fetchall()
+    try:
+        with db.cursor() as cursor:
+            # Execute an SQL query to fetch the list of movies matching the provided title
+            cursor.execute('SELECT * FROM movies WHERE names LIKE %s', (f"%{movieTitle}%",))  
+            
+            # Fetch all the movie records
+            data = cursor.fetchall()
 
-        movies = [{'movie_id': row['movie_id'], 'title': row['names'], 'description': row['overview'], 'date': row['date_x'], 'genre': row['genre']} for row in data]
+            movies = [{'movie_id': row['movie_id'], 'title': row['names'], 'description': row['overview'], 'date': row['date_x'], 'genre': row['genre']} for row in data]
 
-        return jsonify(movies)
+            return jsonify(movies)
+    except Exception as e:
+        # Handle the exception
+        return jsonify({'error': 'An error occurred while fetching movie data.'}), 500
+
 
 @app.route('/movies', methods=['POST','GET'])
 def recommend_mysql_movies():
@@ -90,28 +94,30 @@ def recommend_mysql_movies():
         with db.cursor() as cursor:
             cursor.execute('SELECT * FROM movies WHERE movie_id = %s', (movie_id))
             data = cursor.fetchall()
+            
+            if not data:
+                return jsonify({'message': 'Movie not found.'}), 404
+            
             movies = {'movie_id': data[0]['movie_id'], 'title': data[0]['names'], 'description': data[0]['overview'], 'date': data[0]['date_x'], 'genre': data[0]['genre'] }
 
             try:
                 cursor.execute('INSERT INTO WatchedMovies (UserID, movie_id) VALUES (%s, %s)', (1, movie_id))
                 db.commit()
-            except Exception as e:
-                return jsonify({'message': 'Error inserting watched movie.'}), 500
-
+            except pymysql.Error as e:
+                # Log the error or return a more detailed error response
+                return jsonify({'message': 'Error inserting watched movie.', 'error_details': str(e)}), 500
 
         recommendations = get_movie_recommendations(movie_title, cosine_sim)
 
         if recommendations:
             return jsonify(
                 {   'message': 'Successfully saved to watched history.',
-                    'movie':movies,
+                    'movie': movies,
                     'data': recommendations
-                    })
+                })
         else:
-            return jsonify({'message': 'No recommendations found.', 'movie':movies,
-                    'data': recommendations
-                    })
-    
+            return jsonify({'message': 'No recommendations found.', 'movie': movies, 'data': recommendations})
+
     if request.method == 'GET':
         
         with db.cursor() as cursor:
