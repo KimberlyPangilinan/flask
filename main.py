@@ -50,8 +50,10 @@ with db.cursor() as cursor:
 def get_movie_recommendations( movie_title, similarity_matrix):
     if type(movie_title) == str:
         movie_idx = movie_titles.index(movie_title)
+        
     else: 
         movie_idx = movie_title
+        print(movie_title)
     similar_movies = list(enumerate(similarity_matrix[movie_idx]))
     similar_movies = sorted(similar_movies, key=lambda x: x[1], reverse=True)[1:]
     recommended_movies = []
@@ -131,6 +133,24 @@ def recommend_mysql_movies():
 
         return jsonify(movies)
             
+@app.route('/movies/forYou', methods=['GET'])
+def recommendBasedHistory():     
+     try:
+        with db.cursor() as cursor:
+            cursor.execute('SELECT * FROM watchedMovies ')
+            data = cursor.fetchall()
+            print(data[0]['movie_id'],"ddata")
+            recommendations = get_movie_recommendations(data[0]['movie_id'], cosine_sim)
+            
+        return jsonify(recommendations)
+     except pymysql.Error as e:
+                # Log the error or return a more detailed error response
+                return jsonify({'message': 'Error inserting watched movie.', 'error_details': str(e)}), 500
+        
+        
+       
+        
+          
 
 '''
 data = query_data
