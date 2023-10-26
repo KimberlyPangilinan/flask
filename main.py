@@ -9,15 +9,22 @@ import pymysql
 app = Flask(__name__)
 CORS(app) 
 
+# # MySQL configuration
+# db = pymysql.connect(
+#     host='109.106.254.1',
+#     user='u690159757_kim',
+#     password='*yKa&T6y4#sJ8XvE9j',
+#     db='u690159757_kim',
+#     cursorclass=pymysql.cursors.DictCursor  
+# )
 # MySQL configuration
 db = pymysql.connect(
-    host='109.106.254.1',
-    user='u690159757_kim',
-    password='*yKa&T6y4#sJ8XvE9j',
-    db='u690159757_kim',
+    host='mysql5049.site4now.net',
+    user='aa0682_movies',
+    password='Password1234.',
+    db='db_aa0682_movies',
     cursorclass=pymysql.cursors.DictCursor  
 )
-
 # # Load and preprocess the data
 with db.cursor() as cursor:
     cursor.execute('SELECT * FROM movies')
