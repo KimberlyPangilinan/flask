@@ -2,8 +2,6 @@ flask
 gunicorn>=20.1.0
 nltk
 pandas
-tensorflow
 scikit-learn
-numpy
 flask-cors
 pymysql
