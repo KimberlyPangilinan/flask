@@ -1,30 +1,30 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS  # Import CORS from flask_cors
-import pandas as pd
+# import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 from nltk.corpus import stopwords
-import nltk
+# import nltk
 import pymysql
 
 app = Flask(__name__)
 CORS(app) 
 
-# # MySQL configuration
-# db = pymysql.connect(
-#     host='109.106.254.1',
-#     user='u690159757_kim',
-#     password='*yKa&T6y4#sJ8XvE9j',
-#     db='u690159757_kim',
-#     cursorclass=pymysql.cursors.DictCursor  
-# )
 # MySQL configuration
 db = pymysql.connect(
-    host='mysql5049.site4now.net',
-    user='aa0682_movies',
-    password='Password1234.',
-    db='db_aa0682_movies',
+    host='109.106.254.1',
+    user='u690159757_kim',
+    password='*yKa&T6y4#sJ8XvE9j',
+    db='u690159757_kim',
     cursorclass=pymysql.cursors.DictCursor  
 )
+# # MySQL configuration
+# db = pymysql.connect(
+#     host='mysql5049.site4now.net',
+#     user='aa0682_movies',
+#     password='Password1234.',
+#     db='db_aa0682_movies',
+#     cursorclass=pymysql.cursors.DictCursor  
+# )
 # # Load and preprocess the data
 with db.cursor() as cursor:
     cursor.execute('SELECT * FROM movies')
@@ -37,13 +37,13 @@ with db.cursor() as cursor:
     
 
 # Preprocess the movie overviews
-    nltk.download("stopwords")
-    stop_words = set(stopwords.words("english"))
+    # nltk.download("stopwords")
+    # stop_words = set(stopwords.words("english"))
 
     for n, name in enumerate(movie_overviews):
         temp = name.lower().split(" ")
         temp = [''.join([letter for letter in word if letter.isalnum()]) for word in temp]
-        temp = [word for word in temp if word not in stop_words]
+        # temp = [word for word in temp if word not in stop_words]
         temp = ' '.join(temp)
         movie_overviews[n] = temp
 

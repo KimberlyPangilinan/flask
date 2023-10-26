@@ -1,7 +1,6 @@
 flask
 gunicorn>=20.1.0
 nltk
-pandas
 scikit-learn
 flask-cors
 pymysql
