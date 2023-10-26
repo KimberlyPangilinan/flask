@@ -17,7 +17,6 @@ CORS(app)
 #     db='u690159757_kim',
 #     cursorclass=pymysql.cursors.DictCursor  
 # )
-
 # MySQL configuration
 db = pymysql.connect(
     host='mysql5049.site4now.net',
@@ -26,6 +25,13 @@ db = pymysql.connect(
     db='db_aa0682_movies',
     cursorclass=pymysql.cursors.DictCursor  
 )
+# db = pymysql.connect(
+#     host='mysql5049.site4now.net',
+#     user='aa0682_movies',
+#     password='Password1234.',
+#     db='db_aa0682_movies',
+#     cursorclass=pymysql.cursors.DictCursor  
+# )
 # # Load and preprocess the data
 with db.cursor() as cursor:
     cursor.execute('SELECT * FROM movies')
@@ -132,7 +138,7 @@ def recommend_mysql_movies():
         
         with db.cursor() as cursor:
             # Execute an SQL query to fetch the list of movies
-            cursor.execute('SELECT * FROM')
+            cursor.execute('SELECT * FROM movies limit 20')
             
             # Fetch all the movie records
             data = cursor.fetchall()
