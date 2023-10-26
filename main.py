@@ -33,26 +33,26 @@ db = pymysql.connect(
 #     cursorclass=pymysql.cursors.DictCursor  
 # )
 # # Load and preprocess the data
-with db.cursor() as cursor:
-    cursor.execute('SELECT * FROM movies')
-    data = cursor.fetchall()
+cursor = db.cursor()
+cursor.execute('SELECT * FROM movies')
+data = cursor.fetchall()
 
-    movie_overviews_orig = [row['overview'] for row in data]
-    movie_id = [row['movie_id'] for row in data]
-    movie_overviews = [row['overview'] for row in data]
-    movie_titles = [row['names'] for row in data] 
-    
+movie_overviews_orig = [row['overview'] for row in data]
+movie_id = [row['movie_id'] for row in data]
+movie_overviews = [row['overview'] for row in data]
+movie_titles = [row['names'] for row in data] 
+
 
 # Preprocess the movie overviews
-    nltk.download("stopwords")
-    stop_words = set(stopwords.words("english"))
+nltk.download("stopwords")
+stop_words = set(stopwords.words("english"))
 
-    for n, name in enumerate(movie_overviews):
-        temp = name.lower().split(" ")
-        temp = [''.join([letter for letter in word if letter.isalnum()]) for word in temp]
-        temp = [word for word in temp if word not in stop_words]
-        temp = ' '.join(temp)
-        movie_overviews[n] = temp
+for n, name in enumerate(movie_overviews):
+    temp = name.lower().split(" ")
+    temp = [''.join([letter for letter in word if letter.isalnum()]) for word in temp]
+    temp = [word for word in temp if word not in stop_words]
+    temp = ' '.join(temp)
+    movie_overviews[n] = temp
 
 # Calculate cosine similarity
     from sklearn.feature_extraction.text import CountVectorizer
@@ -107,7 +107,7 @@ def recommend_mysql_movies():
         movie_title = data['movie_title']
         movie_id = data['movie_id']
         
-        with db.cursor() as cursor:
+       
         #     cursor.execute('SELECT * FROM movies WHERE movie_id = %s', (movie_id))
         #     data = cursor.fetchall()
             
@@ -116,12 +116,14 @@ def recommend_mysql_movies():
             
             # movies = {'movie_id': data[0]['movie_id'], 'title': data[0]['names'], 'description': data[0]['overview'], 'date': data[0]['date_x'], 'genre': data[0]['genre'] }
 
-            try:
+        try:
+
+            with db.cursor() as cursor:
                 cursor.execute('INSERT INTO watchedmovies (UserID, movie_id) VALUES (%s, %s)', (1, movie_id))
                 db.commit()
-            except pymysql.Error as e:
-                # Log the error or return a more detailed error response
-                return jsonify({'message': 'Error inserting watched movie.', 'error_details': str(e)}), 500
+        except pymysql.Error as e:
+            # Log the error or return a more detailed error response
+            return jsonify({'message': 'Error inserting watched movie.', 'error_details': str(e)}), 500
 
         recommendations = get_movie_recommendations(movie_title, cosine_sim)
 
