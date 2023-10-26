@@ -117,7 +117,7 @@ def recommend_mysql_movies():
             # movies = {'movie_id': data[0]['movie_id'], 'title': data[0]['names'], 'description': data[0]['overview'], 'date': data[0]['date_x'], 'genre': data[0]['genre'] }
 
             try:
-                cursor.execute('INSERT INTO watchedMovies (UserID, movie_id) VALUES (%s, %s)', (1, movie_id))
+                cursor.execute('INSERT INTO watchedmovies (UserID, movie_id) VALUES (%s, %s)', (1, movie_id))
                 db.commit()
             except pymysql.Error as e:
                 # Log the error or return a more detailed error response
