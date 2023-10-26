@@ -9,22 +9,22 @@ import pymysql
 app = Flask(__name__)
 CORS(app) 
 
-# MySQL configuration
-db = pymysql.connect(
-    host='109.106.254.1',
-    user='u690159757_kim',
-    password='*yKa&T6y4#sJ8XvE9j',
-    db='u690159757_kim',
-    cursorclass=pymysql.cursors.DictCursor  
-)
 # # MySQL configuration
 # db = pymysql.connect(
-#     host='mysql5049.site4now.net',
-#     user='aa0682_movies',
-#     password='Password1234.',
-#     db='db_aa0682_movies',
+#     host='109.106.254.1',
+#     user='u690159757_kim',
+#     password='*yKa&T6y4#sJ8XvE9j',
+#     db='u690159757_kim',
 #     cursorclass=pymysql.cursors.DictCursor  
 # )
+# MySQL configuration
+db = pymysql.connect(
+    host='mysql5049.site4now.net',
+    user='aa0682_movies',
+    password='Password1234.',
+    db='db_aa0682_movies',
+    cursorclass=pymysql.cursors.DictCursor  
+)
 # # Load and preprocess the data
 with db.cursor() as cursor:
     cursor.execute('SELECT * FROM movies')
@@ -75,22 +75,22 @@ def get_movie_recommendations( movie_title, similarity_matrix):
 
     return recommended_movies
 
-@app.route('/movies/<string:movieTitle>', methods=['GET'])
-def get_movies_by_title(movieTitle):
-    try:
-        with db.cursor() as cursor:
-            # Execute an SQL query to fetch the list of movies matching the provided title
-            cursor.execute('SELECT * FROM movies WHERE names LIKE %s', (f"%{movieTitle}%",))  
+# @app.route('/movies/<string:movieTitle>', methods=['GET'])
+# def get_movies_by_title(movieTitle):
+#     try:
+#         with db.cursor() as cursor:
+#             # Execute an SQL query to fetch the list of movies matching the provided title
+#             cursor.execute('SELECT * FROM movies WHERE names LIKE %s', (f"%{movieTitle}%",))  
             
-            # Fetch all the movie records
-            data = cursor.fetchall()
+#             # Fetch all the movie records
+#             data = cursor.fetchall()
 
-            movies = [{'movie_id': row['movie_id'], 'title': row['names'], 'description': row['overview'], 'date': row['date_x'], 'genre': row['genre']} for row in data]
+#             movies = [{'movie_id': row['movie_id'], 'title': row['names'], 'description': row['overview'], 'date': row['date_x'], 'genre': row['genre']} for row in data]
 
-            return jsonify(movies)
-    except Exception as e:
-        # Handle the exception
-        return jsonify({'error': 'An error occurred while fetching movie data.'}), 500
+#             return jsonify(movies)
+#     except Exception as e:
+#         # Handle the exception
+#         return jsonify({'error': 'An error occurred while fetching movie data.'}), 500
 
 
 @app.route('/movies', methods=['POST','GET'])
@@ -131,7 +131,7 @@ def recommend_mysql_movies():
         
         with db.cursor() as cursor:
             # Execute an SQL query to fetch the list of movies
-            cursor.execute('SELECT * FROM movies limit 20')
+            cursor.execute('SELECT * FROM movies')
             
             # Fetch all the movie records
             data = cursor.fetchall()
