@@ -5,11 +5,11 @@ import mysql.connector
 
 # mysql =MySQL()
 
-conn = mysql.connector.connect(user = 'aa0682_movies', 
-                          password = 'Password1234.',
-                          database = 'db_aa0682_movies',
-                          host = 'mysql5049.site4now.net',
-                          connect_timeout = 8000 
+conn = mysql.connector.connect(user = 'u690159757_kim', 
+                          password = '*yKa&T6y4#sJ8XvE9j',
+                          database = 'u690159757_kim',
+                          host = '109.106.254.1',
+                          connection_timeout = 10000 
                           )
 
 app = Flask(__name__)
@@ -20,6 +20,7 @@ CORS(app)
 def login():
 
     if request.method == 'GET':
+        conn.reconnect()
         cursor = conn.cursor()
         cursor.execute(''' SELECT * FROM movies limit 50''')
         data = cursor.fetchall()
