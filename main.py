@@ -4,7 +4,7 @@ from flask_cors import CORS  # Import CORS from flask_cors
 # from sklearn.metrics.pairwise import cosine_similarity
 # from nltk.corpus import stopwords
 # import nltk
-import pymysql
+
 from flask_mysqldb import MySQL
 
 mysql =MySQL()
