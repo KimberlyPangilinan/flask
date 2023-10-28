@@ -1,11 +1,11 @@
-Flask==3.0.0
-Flask-Cors==4.0.0
-# gunicorn>=20.1.0
+wheel
+flask
+gunicorn>=20.1.0
 # nltk
 # scikit-learn
 flask-cors
-pymysql
+# pymysql
 # flask-mysqldb
 # mysqlclient
 Flask-MySQLdb==2.0.0
-mysqlclient==2.2.0
+# mysqlclient==2.2.0
