@@ -78,7 +78,7 @@ def get_movie_recommendations( movie_title, similarity_matrix):
     
     # Calculate a recommendation score based on similarity (cosine similarity)
     for i in similar_movies:
-        if(i[1]< 0.18):
+        if(i[1]< 0.15):
             break
         recommended_movie_title = movie_titles[i[0]]
         movie_description = movie_overviews_orig[i[0]]
@@ -144,7 +144,7 @@ def recommend_mysql_movies():
         db.ping(reconnect=True)
         with db.cursor() as cursor:
             # Execute an SQL query to fetch the list of movies
-            cursor.execute('SELECT * FROM movies limit 50')
+            cursor.execute('SELECT * FROM movies limit 100')
             
             # Fetch all the movie records
             data = cursor.fetchall()
