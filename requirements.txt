@@ -4,8 +4,9 @@ gunicorn>=20.1.0
 # nltk
 # scikit-learn
 flask-cors
-# pymysql
+pymysql
 # flask-mysqldb
 # mysqlclient
-Flask-MySQLdb==2.0.0
+# Flask-MySQLdb==2.0.0
 # mysqlclient==2.2.0
+mysql-connector-python
