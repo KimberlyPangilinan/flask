@@ -5,6 +5,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from nltk.corpus import stopwords
 import nltk
 import pymysql
+import numpy as np
 
 app = Flask(__name__)
 CORS(app) 
@@ -152,19 +153,30 @@ def recommend_mysql_movies():
 
         return jsonify(movies)
             
-# @app.route('/movies/forYou', methods=['GET'])
-# def recommendBasedHistory():     
-#      try:
-#         with db.cursor() as cursor:
-#             cursor.execute('SELECT * FROM watchedMovies ')
-#             data = cursor.fetchall()
-#             print(data[0]['movie_id'],"ddata")
-#             recommendations = get_movie_recommendations(data[0]['movie_id'], cosine_sim)
+@app.route('/movies/forYou', methods=['GET'])
+def recommendBasedHistory():     
+     try:
+        db.ping(reconnect=True) 
+        with db.cursor() as cursor:
+            cursor.execute('SELECT * FROM watchedMovies')
+            data = cursor.fetchall()[::-1]
+            movie_ids = [row['movie_id'] for row in data]
+            movie_ids = np.unique(movie_ids)
+            # print(data[0]['movie_id'],"ddata")
+            temp=[]
+            for i in range(len(movie_ids)):
+                 recommendations = get_movie_recommendations(i, cosine_sim)[1:]
+                 if len(recommendations) < 1: continue
+                 temp.append(recommendations)
+                 if len(temp) > 5: break
+                #  print(data[i]['movie_id'])
+            print(temp)
             
-#         return jsonify(recommendations)
-#      except pymysql.Error as e:
-#                 # Log the error or return a more detailed error response
-#                 return jsonify({'message': 'Error inserting watched movie.', 'error_details': str(e)}), 500
+        # return jsonify(recommendations)
+        return jsonify(temp)
+     except pymysql.Error as e:
+                # Log the error or return a more detailed error response
+                return jsonify({'message': 'Error inserting watched movie.', 'error_details': str(e)}), 500
         
         
        
