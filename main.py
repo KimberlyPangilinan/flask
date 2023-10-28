@@ -23,7 +23,9 @@ db = pymysql.connect(
     user='aa0682_movies',
     password='Password1234.',
     db='db_aa0682_movies',
-    cursorclass=pymysql.cursors.DictCursor  
+    connect_timeout=8800,
+    cursorclass=pymysql.cursors.DictCursor
+     
 )
 # db = pymysql.connect(
 #     host='mysql5049.site4now.net',
@@ -117,7 +119,6 @@ def recommend_mysql_movies():
             # movies = {'movie_id': data[0]['movie_id'], 'title': data[0]['names'], 'description': data[0]['overview'], 'date': data[0]['date_x'], 'genre': data[0]['genre'] }
 
         try:
-
             with db.cursor() as cursor:
                 cursor.execute('INSERT INTO watchedmovies (UserID, movie_id) VALUES (%s, %s)', (1, movie_id))
                 db.commit()
