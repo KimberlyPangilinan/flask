@@ -1,18 +1,25 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS 
-from flask_mysqldb import MySQL
+# from flask_mysqldb import MySQL
+from mysql import connector
 
-mysql =MySQL()
+# mysql =MySQL()
+
+mysql = connector.connect(user = 'aa0682_movies', 
+                          password = 'Password1234.',
+                          database = 'db_aa0682_movies',
+                          host = 'mysql5049.site4now.net'
+                          )
 
 app = Flask(__name__)
 CORS(app) 
 
-app.config['MYSQL_HOST'] = 'mysql5049.site4now.net'
-app.config['MYSQL_USER'] = 'aa0682_movies'
-app.config['MYSQL_PASSWORD'] = 'Password1234.'
-app.config['MYSQL_DB'] = 'db_aa0682_movies'
+# app.config['MYSQL_HOST'] = 'mysql5049.site4now.net'
+# app.config['MYSQL_USER'] = 'aa0682_movies'
+# app.config['MYSQL_PASSWORD'] = 'Password1234.'
+# app.config['MYSQL_DB'] = 'db_aa0682_movies'
  
-mysql = MySQL(app)
+# mysql = MySQL(app)
 # mysql.init_app(app)
 # db = pymysql.connect(
 #     host='mysql5049.site4now.net',
@@ -145,7 +152,7 @@ mysql = MySQL(app)
 def login():
 
     if request.method == 'GET':
-        cursor = mysql.connection.cursor()
+        cursor = mysql.cursor()
         cursor.execute(''' SELECT * FROM movies limit 50''')
         data = cursor.fetchall()
         mysql.connection.commit()
