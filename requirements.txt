@@ -1,6 +1,7 @@
 flask
 gunicorn>=20.1.0
-nltk
-scikit-learn
+# nltk
+# scikit-learn
 flask-cors
 pymysql
+Flask-MySQL

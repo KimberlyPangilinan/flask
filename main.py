@@ -1,9 +1,9 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS  # Import CORS from flask_cors
 # import pandas as pd
-from sklearn.metrics.pairwise import cosine_similarity
-from nltk.corpus import stopwords
-import nltk
+# from sklearn.metrics.pairwise import cosine_similarity
+# from nltk.corpus import stopwords
+# import nltk
 import pymysql
 from flask_mysqldb import MySQL
 
