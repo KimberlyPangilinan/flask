@@ -1,19 +1,36 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS 
 # from flask_mysqldb import MySQL
-from mysql import connector
+import mysql.connector
 
 # mysql =MySQL()
 
-mysql = connector.connect(user = 'aa0682_movies', 
+conn = mysql.connector.connect(user = 'aa0682_movies', 
                           password = 'Password1234.',
                           database = 'db_aa0682_movies',
-                          host = 'mysql5049.site4now.net'
+                          host = 'mysql5049.site4now.net',
+                          connect_timeout = 8000 
                           )
 
 app = Flask(__name__)
 CORS(app) 
 
+ 
+@app.route('/movies', methods = ['GET'])
+def login():
+
+    if request.method == 'GET':
+        cursor = conn.cursor()
+        cursor.execute(''' SELECT * FROM movies limit 50''')
+        data = cursor.fetchall()
+        conn.commit()
+        cursor.close()
+
+        movies = [{'movie_id':row[0],'title': row[1]} for row in data]
+
+        return jsonify(movies)
+ 
+ 
 # app.config['MYSQL_HOST'] = 'mysql5049.site4now.net'
 # app.config['MYSQL_USER'] = 'aa0682_movies'
 # app.config['MYSQL_PASSWORD'] = 'Password1234.'
@@ -147,22 +164,8 @@ CORS(app)
 
 #         return jsonify(movies)
 
- 
-@app.route('/movies', methods = ['GET'])
-def login():
 
-    if request.method == 'GET':
-        cursor = mysql.cursor()
-        cursor.execute(''' SELECT * FROM movies limit 50''')
-        data = cursor.fetchall()
-        mysql.connection.commit()
-        cursor.close()
-
-        movies = [{'movie_id':row[0],'title': row[1]} for row in data]
-
-        return jsonify(movies)
- 
-app.run(host='localhost', port=5000)
+# app.run(host='localhost', port=5000)
             
 # @app.route('/movies/forYou', methods=['GET'])
 # def recommendBasedHistory():     
@@ -193,5 +196,5 @@ app.run(host='localhost', port=5000)
     
 # '''
 
-# if __name__ == '__main__':
-#   app.run(port=5000)
+if __name__ == '__main__':
+  app.run(port=5000)
