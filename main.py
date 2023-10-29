@@ -86,22 +86,17 @@ def get_movie_recommendations( movie_title, similarity_matrix):
 
     return recommended_movies
 
-# @app.route('/movies/<string:movieTitle>', methods=['GET'])
-# def get_movies_by_title(movieTitle):
-#     try:
-#         with db.cursor() as cursor:
-#             # Execute an SQL query to fetch the list of movies matching the provided title
-#             cursor.execute('SELECT * FROM movies WHERE names LIKE %s', (f"%{movieTitle}%",))  
-            
-#             # Fetch all the movie records
-#             data = cursor.fetchall()
-
-#             movies = [{'movie_id': row['movie_id'], 'title': row['names'], 'description': row['overview'], 'date': row['date_x'], 'genre': row['genre']} for row in data]
-
-#             return jsonify(movies)
-#     except Exception as e:
-#         # Handle the exception
-#         return jsonify({'error': 'An error occurred while fetching movie data.'}), 500
+@app.route('/movies/<string:movieTitle>', methods=['GET'])
+def get_movies_by_title(movieTitle):
+    try:
+        with db.cursor() as cursor:
+            cursor.execute('SELECT * FROM movies WHERE names LIKE %s', (f"%{movieTitle}%",))  
+            data = cursor.fetchall()
+            movies = [{'movie_id': row['movie_id'], 'title': row['names'], 'description': row['overview'], 'date': row['date_x'], 'genre': row['genre']} for row in data]
+            return jsonify(movies)
+    except Exception as e:
+        # Handle the exception
+        return jsonify({'error': 'An error occurred while fetching movie data.'}), 500
 
 
 @app.route('/movies', methods=['POST','GET'])
@@ -164,18 +159,37 @@ def recommendBasedHistory():
             movie_ids = np.unique(movie_ids)
             # print(data[0]['movie_id'],"ddata")
             temp=[]
+            results=[]
             for i in range(len(movie_ids)):
                  recommendations = get_movie_recommendations(i, cosine_sim)[1:]
                  if len(recommendations) < 1: continue
                  temp.append(recommendations)
                  if len(temp) > 5: break
                 #  print(data[i]['movie_id'])
-            print(temp)
             
-        # return jsonify(recommendations)
+            # results =[row['movie_id'] for row in temp]
+            print('-----',temp,'---------------')
+            
+            for movie_group in temp:
+                for movie in movie_group:
+                    # Access movie information
+                    
+                    movie_id = movie['movie_id']
+                    results.append(movie_id)
+            results = np.unique(results)
+            print(results)
+            # db.ping(reconnect=True) 
+            # with db.cursor() as cursor:
+            #     cursor.execute('SELECT * FROM movies WHERE movie_id IN %s', (results,))
+
+            #     results = cursor.fetchall()
+                
+            # print(results,"-------")
+           
+              
+                
         return jsonify(temp)
      except pymysql.Error as e:
-                # Log the error or return a more detailed error response
                 return jsonify({'message': 'Error inserting watched movie.', 'error_details': str(e)}), 500
         
         
