@@ -165,9 +165,7 @@ def recommendBasedHistory():
                  if len(recommendations) < 1: continue
                  temp.append(recommendations)
                  if len(temp) > 5: break
-                #  print(data[i]['movie_id'])
-            
-            # results =[row['movie_id'] for row in temp]
+   
             print('-----',temp,'---------------')
             
             for movie_group in temp:
@@ -178,14 +176,7 @@ def recommendBasedHistory():
                     results.append(movie_id)
             results = np.unique(results)
             print(results)
-            # db.ping(reconnect=True) 
-            # with db.cursor() as cursor:
-            #     cursor.execute('SELECT * FROM movies WHERE movie_id IN %s', (results,))
 
-            #     results = cursor.fetchall()
-                
-            # print(results,"-------")
-           
               
                 
         return jsonify(temp)
