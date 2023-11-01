@@ -10,15 +10,6 @@ import numpy as np
 app = Flask(__name__)
 CORS(app) 
 
-# # MySQL configuration
-# db = pymysql.connect(
-#     host='109.106.254.1',
-#     user='u690159757_kim',
-#     password='*yKa&T6y4#sJ8XvE9j',
-#     db='u690159757_kim',
-#     cursorclass=pymysql.cursors.DictCursor  
-# )
-# MySQL configuration
 db = pymysql.connect(
     host='mysql5049.site4now.net',
     user='aa0682_movies',
@@ -26,85 +17,88 @@ db = pymysql.connect(
     db='db_aa0682_movies',
     connect_timeout=8800,
     cursorclass=pymysql.cursors.DictCursor
-     
 )
-# db = pymysql.connect(
-#     host='mysql5049.site4now.net',
-#     user='aa0682_movies',
-#     password='Password1234.',
-#     db='db_aa0682_movies',
-#     cursorclass=pymysql.cursors.DictCursor  
-# )
-# # Load and preprocess the data
+
 db.ping(reconnect=True)
 cursor = db.cursor()
-cursor.execute('SELECT * FROM movies')
+cursor.execute('SELECT * FROM article')
 data = cursor.fetchall()
 
-movie_overviews_orig = [row['overview'] for row in data]
-movie_id = [row['movie_id'] for row in data]
-movie_overviews = [row['overview'] for row in data]
-movie_titles = [row['names'] for row in data] 
+
+id = [row['article_id'] for row in data]
+overviews_orig = [row['abstract'] for row in data]
+overviews = [row['abstract'] for row in data]
+titles = [row['title'] for row in data] 
+titles_orig = [row['title'] for row in data] 
 
 
 # Preprocess the movie overviews
 nltk.download("stopwords")
 stop_words = set(stopwords.words("english"))
 
-for n, name in enumerate(movie_overviews):
+for n, name in enumerate(overviews):
     temp = name.lower().split(" ")
     temp = [''.join([letter for letter in word if letter.isalnum()]) for word in temp]
     temp = [word for word in temp if word not in stop_words]
     temp = ' '.join(temp)
-    movie_overviews[n] = temp
-
+    overviews[n] = temp
+    
+for n, title in enumerate(titles):
+    temp = title.lower().split(" ")
+    temp = [''.join([letter for letter in word if letter.isalnum()]) for word in temp]
+    temp = [word for word in temp if word not in stop_words]
+    temp = ' '.join(temp)
+    titles[n] = temp
 # Calculate cosine similarity
     from sklearn.feature_extraction.text import CountVectorizer
 
-    vectorizer = CountVectorizer().fit_transform(movie_overviews)
-    cosine_sim = cosine_similarity(vectorizer)
+    # Calculate cosine similarity for overviews
+    vectorizer_overviews = CountVectorizer().fit_transform(overviews)
+    cosine_sim_overviews = cosine_similarity(vectorizer_overviews)
 
-# Function to get movie recommendations
-def get_movie_recommendations( movie_title, similarity_matrix):
-    if type(movie_title) == str:
-        movie_idx = movie_titles.index(movie_title)
-        
-    else: 
-        movie_idx = movie_title
-        print(movie_title)
-    similar_movies = list(enumerate(similarity_matrix[movie_idx]))
-    similar_movies = sorted(similar_movies, key=lambda x: x[1], reverse=True)
-    recommended_movies = []
+    # Calculate cosine similarity for titles
+    vectorizer_titles = CountVectorizer().fit_transform(titles)
+    cosine_sim_titles = cosine_similarity(vectorizer_titles)
+
+# Function to get article recommendations
+def get_article_recommendations( article_id, overviews_similarity_matrix, titles_similarity_matrix):
+    # Combine the similarity matrices for overviews and titles, you can adjust the weights as needed
+    combined_similarity = 0.4 * overviews_similarity_matrix + 0.6 * titles_similarity_matrix
+
+    similar_articles = list(enumerate(combined_similarity[article_id]))
+    similar_articles = sorted(similar_articles, key=lambda x: x[1], reverse=True)
+    recommended_articles = []
     
     # Calculate a recommendation score based on similarity (cosine similarity)
-    for i in similar_movies:
-        if(i[1]< 0.15):
+    for i in similar_articles:
+        if(i[1]< 0.25):
             break
-        recommended_movie_title = movie_titles[i[0]]
-        movie_description = movie_overviews_orig[i[0]]
-        recommended_movies.append({'title': recommended_movie_title, 'description': movie_description,'movie_id': movie_id[i[0]], 'score':i[1]})
+        recommended_article_title = titles_orig[i[0]]
+        article_description = overviews_orig[i[0]]
+        recommended_articles.append({'title': recommended_article_title, 'article_id': id[i[0]], 'score': i[1]})
 
-    return recommended_movies
 
-@app.route('/movies/<string:movieTitle>', methods=['GET'])
-def get_movies_by_title(movieTitle):
-    try:
-        with db.cursor() as cursor:
-            cursor.execute('SELECT * FROM movies WHERE names LIKE %s', (f"%{movieTitle}%",))  
-            data = cursor.fetchall()
-            movies = [{'movie_id': row['movie_id'], 'title': row['names'], 'description': row['overview'], 'date': row['date_x'], 'genre': row['genre']} for row in data]
-            return jsonify(movies)
-    except Exception as e:
-        # Handle the exception
-        return jsonify({'error': 'An error occurred while fetching movie data.'}), 500
+    return recommended_articles
+
+# @app.route('/movies/<string:movieTitle>', methods=['GET'])
+# def get_movies_by_title(movieTitle):
+#     try:
+#         with db.cursor() as cursor:
+#             cursor.execute('SELECT * FROM movies WHERE names LIKE %s', (f"%{movieTitle}%",))  
+#             data = cursor.fetchall()
+#             # movies = [{'movie_id': row['movie_id'], 'title': row['names'], 'description': row['overview'], 'date': row['date_x'], 'genre': row['genre']} for row in data]
+#             return jsonify(data)
+#     except Exception as e:
+#         # Handle the exception
+#         return jsonify({'error': 'An error occurred while fetching movie data.'}), 500
 
 
 @app.route('/movies', methods=['POST','GET'])
-def recommend_mysql_movies():
+def recommend_mysql_articles():
     if request.method == 'POST':
         data = request.get_json()
-        movie_title = data['movie_title']
-        movie_id = data['movie_id']
+        article_id = data['article_id']-1
+        # movie_id = data['movie_id']
         
        
         #     cursor.execute('SELECT * FROM movies WHERE movie_id = %s', (movie_id))
@@ -118,70 +112,70 @@ def recommend_mysql_movies():
         try:
             db.ping(reconnect=True)
             with db.cursor() as cursor:
-                cursor.execute('INSERT INTO watchedmovies (UserID, movie_id) VALUES (%s, %s)', (1, movie_id))
+                cursor.execute('INSERT INTO read_history (article_id, author_id) VALUES (%s, %s)', (article_id, 1))
                 db.commit()
         except pymysql.Error as e:
             # Log the error or return a more detailed error response
-            return jsonify({'message': 'Error inserting watched movie.', 'error_details': str(e)}), 500
+            return jsonify({'message': 'Error inserting read history.', 'error_details': str(e)}), 500
 
-        recommendations = get_movie_recommendations(movie_title, cosine_sim)
+        recommendations = get_article_recommendations(article_id, cosine_sim_overviews, cosine_sim_titles)
 
         if recommendations:
             return jsonify(
-                {   'message': 'Successfully saved to watched history.',
+                {   'message': 'Successfully saved to read history.',
                     # 'movie': movies,
                     'data': recommendations
                 })
         else:
-            return jsonify({'message': 'No recommendations found.', 'movie': movies, 'data': recommendations})
+            return jsonify({'message': 'No recommendations found.', 'data': recommendations})
 
     if request.method == 'GET':
         db.ping(reconnect=True)
         with db.cursor() as cursor:
             # Execute an SQL query to fetch the list of movies
-            cursor.execute('SELECT * FROM movies limit 100')
+            cursor.execute('SELECT * FROM article limit 100')
             
             # Fetch all the movie records
             data = cursor.fetchall()
 
-        movies = [{'movie_id':row['movie_id'],'title': row['names'], 'description': row['overview'],  'date': row['date_x'],  'genre': row['genre']} for row in data]
+        # movies = [{'movie_id':row['movie_id'],'title': row['names'], 'description': row['overview'],  'date': row['date_x'],  'genre': row['genre']} for row in data]
 
-        return jsonify(movies)
+        return jsonify(data)
             
-@app.route('/movies/forYou', methods=['GET'])
-def recommendBasedHistory():     
-     try:
-        db.ping(reconnect=True) 
-        with db.cursor() as cursor:
-            cursor.execute('SELECT * FROM watchedMovies')
-            data = cursor.fetchall()[::-1]
-            movie_ids = [row['movie_id'] for row in data]
-            movie_ids = np.unique(movie_ids)
-            # print(data[0]['movie_id'],"ddata")
-            temp=[]
-            results=[]
-            for i in range(len(movie_ids)):
-                 recommendations = get_movie_recommendations(i, cosine_sim)[1:]
-                 if len(recommendations) < 1: continue
-                 temp.append(recommendations)
-                 if len(temp) > 5: break
+# @app.route('/movies/forYou', methods=['GET'])
+# def recommendBasedHistory():     
+#      try:
+#         db.ping(reconnect=True) 
+#         with db.cursor() as cursor:
+#             cursor.execute('SELECT * FROM watchedMovies')
+#             data = cursor.fetchall()[::-1]
+#             movie_ids = [row['movie_id'] for row in data]
+#             movie_ids = np.unique(movie_ids)
+#             # print(data[0]['movie_id'],"ddata")
+#             temp=[]
+#             results=[]
+#             for i in range(len(movie_ids)):
+#                  recommendations = get_movie_recommendations(i, cosine_sim)[1:]
+#                  if len(recommendations) < 1: continue
+#                  temp.append(recommendations)
+#                  if len(temp) > 5: break
    
-            print('-----',temp,'---------------')
+#             print('-----',temp,'---------------')
             
-            for movie_group in temp:
-                for movie in movie_group:
-                    # Access movie information
+#             for movie_group in temp:
+#                 for movie in movie_group:
+#                     # Access movie information
                     
-                    movie_id = movie['movie_id']
-                    results.append(movie_id)
-            results = np.unique(results)
-            print(results)
+#                     movie_id = movie['movie_id']
+#                     results.append(movie_id)
+#             results = np.unique(results)
+#             print(results)
 
               
                 
-        return jsonify(temp)
-     except pymysql.Error as e:
-                return jsonify({'message': 'Error inserting watched movie.', 'error_details': str(e)}), 500
+#         return jsonify(temp)
+#      except pymysql.Error as e:
+#                 return jsonify({'message': 'Error inserting watched movie.', 'error_details': str(e)}), 500
         
         
        
