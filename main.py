@@ -32,7 +32,7 @@ titles = [row['title'] for row in data]
 titles_orig = [row['title'] for row in data] 
 
 
-# Preprocess the movie overviews
+# Preprocessing
 nltk.download("stopwords")
 stop_words = set(stopwords.words("english"))
 
@@ -49,6 +49,7 @@ for n, title in enumerate(titles):
     temp = [word for word in temp if word not in stop_words]
     temp = ' '.join(temp)
     titles[n] = temp
+    
 # Calculate cosine similarity
     from sklearn.feature_extraction.text import CountVectorizer
 
@@ -79,42 +80,31 @@ def get_article_recommendations( article_id, overviews_similarity_matrix, titles
 
     return recommended_articles
 
-@app.route('/movies/<string:movieTitle>', methods=['GET'])
-def get_movies_by_title(movieTitle):
+@app.route('/articles/<string:articleTitle>', methods=['GET'])
+def get_articles_by_title(articleTitle):
     try:
         with db.cursor() as cursor:
-            cursor.execute('SELECT * FROM article WHERE title LIKE %s', (f"%{movieTitle}%",))  
+            cursor.execute('SELECT * FROM article WHERE title LIKE %s', (f"%{articleTitle}%",))  
             data = cursor.fetchall()
-            # movies = [{'movie_id': row['movie_id'], 'title': row['names'], 'description': row['overview'], 'date': row['date_x'], 'genre': row['genre']} for row in data]
             return jsonify(data)
     except Exception as e:
         # Handle the exception
-        return jsonify({'error': 'An error occurred while fetching movie data.'}), 500
+        return jsonify({'error': 'An error occurred while fetching article data.'}), 500
 
 
-@app.route('/movies', methods=['POST','GET'])
+@app.route('/articles', methods=['POST','GET'])
 def recommend_mysql_articles():
     if request.method == 'POST':
         data = request.get_json()
         article_id = data['article_id']-1
-        # movie_id = data['movie_id']
-        
-       
-        #     cursor.execute('SELECT * FROM movies WHERE movie_id = %s', (movie_id))
-        #     data = cursor.fetchall()
-            
-        #     if not data:
-        #         return jsonify({'message': 'Movie not found.'}), 404
-            
-            # movies = {'movie_id': data[0]['movie_id'], 'title': data[0]['names'], 'description': data[0]['overview'], 'date': data[0]['date_x'], 'genre': data[0]['genre'] }
+        author_id = data['author_id']
 
         try:
             db.ping(reconnect=True)
             with db.cursor() as cursor:
-                cursor.execute('INSERT INTO read_history (article_id, author_id) VALUES (%s, %s)', (article_id, 1))
+                cursor.execute('INSERT INTO read_history (article_id, author_id) VALUES (%s, %s)', (article_id, author_id))
                 db.commit()
         except pymysql.Error as e:
-            # Log the error or return a more detailed error response
             return jsonify({'message': 'Error inserting read history.', 'error_details': str(e)}), 500
 
         recommendations = get_article_recommendations(article_id, cosine_sim_overviews, cosine_sim_titles)
@@ -122,74 +112,55 @@ def recommend_mysql_articles():
         if recommendations:
             return jsonify(
                 {   'message': 'Successfully saved to read history.',
-                    # 'movie': movies,
                     'data': recommendations
                 })
         else:
-            return jsonify({'message': 'No recommendations found.', 'data': recommendations})
+            return jsonify({'message': 'No recommendations found.', 'recommendations': recommendations})
 
     if request.method == 'GET':
         db.ping(reconnect=True)
         with db.cursor() as cursor:
-            # Execute an SQL query to fetch the list of movies
             cursor.execute('SELECT * FROM article limit 100')
-            
-            # Fetch all the movie records
             data = cursor.fetchall()
 
         # movies = [{'movie_id':row['movie_id'],'title': row['names'], 'description': row['overview'],  'date': row['date_x'],  'genre': row['genre']} for row in data]
 
         return jsonify(data)
             
-# @app.route('/movies/forYou', methods=['GET'])
-# def recommendBasedHistory():     
-#      try:
-#         db.ping(reconnect=True) 
-#         with db.cursor() as cursor:
-#             cursor.execute('SELECT * FROM watchedMovies')
-#             data = cursor.fetchall()[::-1]
-#             movie_ids = [row['movie_id'] for row in data]
-#             movie_ids = np.unique(movie_ids)
-#             # print(data[0]['movie_id'],"ddata")
-#             temp=[]
-#             results=[]
-#             for i in range(len(movie_ids)):
-#                  recommendations = get_movie_recommendations(i, cosine_sim)[1:]
-#                  if len(recommendations) < 1: continue
-#                  temp.append(recommendations)
-#                  if len(temp) > 5: break
-   
-#             print('-----',temp,'---------------')
-            
-#             for movie_group in temp:
-#                 for movie in movie_group:
-#                     # Access movie information
-                    
-#                     movie_id = movie['movie_id']
-#                     results.append(movie_id)
-#             results = np.unique(results)
-#             print(results)
+@app.route('/articles/history/<int:author_id>', methods=['GET'])
+def recommendBasedHistory(author_id):
+    try:
+        # data = request.get_json()
+        # author_id = data['author_id']
+        db.ping(reconnect=True)
+        with db.cursor() as cursor:
+            cursor.execute('SELECT * FROM read_history where author_id = %s', (author_id,))
+            data = cursor.fetchall()[::-1]
+            history = [int(row['article_id']) for row in data]
+            article_ids = [row['article_id'] for row in data]
+            article_ids = np.unique(article_ids)
+            temp = []
+            results = []
 
-              
-                
-#         return jsonify(temp)
-#      except pymysql.Error as e:
-#                 return jsonify({'message': 'Error inserting watched movie.', 'error_details': str(e)}), 500
-        
-        
-       
-        
-          
+            for i in range(len(article_ids)):
+                recommendations = get_article_recommendations(i, cosine_sim_overviews, cosine_sim_titles)[1:]
+                if len(recommendations) < 1:
+                    continue
+                temp.append(recommendations)
+                if len(temp) > 5:
+                    break
 
-'''
-data = query_data
-recommendations = []
-for item in data:
-    id = item.id
-    recco = get_movie_recc(id)
-    recommendations.append(recco)
-    
-'''
+            for article_group in temp:
+                for article in article_group:
+                    article_id = article['article_id']
+                    results.append({'article_id': article_id, 'title': article['title'], 'score': article['score']})
+
+            # Use jsonify to return the results as a JSON response
+            return jsonify({'personalized_recommendations': results,'history':history,'user_id': author_id})
+
+    except pymysql.Error as e:
+        return jsonify({'message': 'Error fetching recommendations based on read_history', 'error_details': str(e)}), 500
+
 
 if __name__ == '__main__':
   app.run(port=5000)
