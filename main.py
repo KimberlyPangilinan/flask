@@ -52,18 +52,17 @@ for n, title in enumerate(titles):
 # Calculate cosine similarity
     from sklearn.feature_extraction.text import CountVectorizer
 
+    vectorizer = CountVectorizer().fit(overviews + titles)
     # Calculate cosine similarity for overviews
-    vectorizer_overviews = CountVectorizer().fit_transform(overviews)
+    vectorizer_overviews = vectorizer.transform(overviews)
     cosine_sim_overviews = cosine_similarity(vectorizer_overviews)
 
     # Calculate cosine similarity for titles
-    vectorizer_titles = CountVectorizer().fit_transform(titles)
+    vectorizer_titles =  vectorizer.transform(titles)
     cosine_sim_titles = cosine_similarity(vectorizer_titles)
 
-# Function to get article recommendations
 def get_article_recommendations( article_id, overviews_similarity_matrix, titles_similarity_matrix):
-    # Combine the similarity matrices for overviews and titles, you can adjust the weights as needed
-    combined_similarity = 0.4 * overviews_similarity_matrix + 0.6 * titles_similarity_matrix
+    combined_similarity = 0.2 * overviews_similarity_matrix + 0.8 * titles_similarity_matrix
 
     similar_articles = list(enumerate(combined_similarity[article_id]))
     similar_articles = sorted(similar_articles, key=lambda x: x[1], reverse=True)
@@ -71,7 +70,7 @@ def get_article_recommendations( article_id, overviews_similarity_matrix, titles
     
     # Calculate a recommendation score based on similarity (cosine similarity)
     for i in similar_articles:
-        if(i[1]< 0.25):
+        if(i[1]< 0.30):
             break
         recommended_article_title = titles_orig[i[0]]
         article_description = overviews_orig[i[0]]
@@ -80,17 +79,17 @@ def get_article_recommendations( article_id, overviews_similarity_matrix, titles
 
     return recommended_articles
 
-# @app.route('/movies/<string:movieTitle>', methods=['GET'])
-# def get_movies_by_title(movieTitle):
-#     try:
-#         with db.cursor() as cursor:
-#             cursor.execute('SELECT * FROM movies WHERE names LIKE %s', (f"%{movieTitle}%",))  
-#             data = cursor.fetchall()
-#             # movies = [{'movie_id': row['movie_id'], 'title': row['names'], 'description': row['overview'], 'date': row['date_x'], 'genre': row['genre']} for row in data]
-#             return jsonify(data)
-#     except Exception as e:
-#         # Handle the exception
-#         return jsonify({'error': 'An error occurred while fetching movie data.'}), 500
+@app.route('/movies/<string:movieTitle>', methods=['GET'])
+def get_movies_by_title(movieTitle):
+    try:
+        with db.cursor() as cursor:
+            cursor.execute('SELECT * FROM article WHERE title LIKE %s', (f"%{movieTitle}%",))  
+            data = cursor.fetchall()
+            # movies = [{'movie_id': row['movie_id'], 'title': row['names'], 'description': row['overview'], 'date': row['date_x'], 'genre': row['genre']} for row in data]
+            return jsonify(data)
+    except Exception as e:
+        # Handle the exception
+        return jsonify({'error': 'An error occurred while fetching movie data.'}), 500
 
 
 @app.route('/movies', methods=['POST','GET'])
