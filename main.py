@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-from flask_cors import CORS  # Import CORS from flask_cors
+from flask_cors import CORS 
 # import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 from nltk.corpus import stopwords
@@ -77,7 +77,6 @@ def get_article_recommendations( article_id, overviews_similarity_matrix, titles
         article_description = overviews_orig[i[0]]
         recommended_articles.append({'title': recommended_article_title, 'article_id': id[i[0]], 'score': i[1]})
 
-
     return recommended_articles
 
 @app.route('/articles/<string:articleTitle>', methods=['GET'])
@@ -88,7 +87,6 @@ def get_articles_by_title(articleTitle):
             data = cursor.fetchall()
             return jsonify(data)
     except Exception as e:
-        # Handle the exception
         return jsonify({'error': 'An error occurred while fetching article data.'}), 500
 
 
@@ -96,9 +94,13 @@ def get_articles_by_title(articleTitle):
 def recommend_mysql_articles():
     if request.method == 'POST':
         data = request.get_json()
+        
+        if 'article_id' not in data or 'author_id' not in data:
+            return jsonify({'message': 'Both article_id and author_id must be provided.'}), 400
+
         article_id = data['article_id']-1
         author_id = data['author_id']
-
+     
         try:
             db.ping(reconnect=True)
             with db.cursor() as cursor:
@@ -123,15 +125,11 @@ def recommend_mysql_articles():
             cursor.execute('SELECT * FROM article limit 100')
             data = cursor.fetchall()
 
-        # movies = [{'movie_id':row['movie_id'],'title': row['names'], 'description': row['overview'],  'date': row['date_x'],  'genre': row['genre']} for row in data]
-
         return jsonify(data)
             
 @app.route('/articles/history/<int:author_id>', methods=['GET'])
 def recommendBasedHistory(author_id):
     try:
-        # data = request.get_json()
-        # author_id = data['author_id']
         db.ping(reconnect=True)
         with db.cursor() as cursor:
             cursor.execute('SELECT * FROM read_history where author_id = %s', (author_id,))
@@ -155,7 +153,6 @@ def recommendBasedHistory(author_id):
                     article_id = article['article_id']
                     results.append({'article_id': article_id, 'title': article['title'], 'score': article['score']})
 
-            # Use jsonify to return the results as a JSON response
             return jsonify({'personalized_recommendations': results,'history':history,'user_id': author_id})
 
     except pymysql.Error as e:
