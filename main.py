@@ -71,7 +71,7 @@ def get_article_recommendations( article_id, overviews_similarity_matrix, titles
     
     # Calculate a recommendation score based on similarity (cosine similarity)
     for i in similar_articles:
-        if(i[1]< 0.30):
+        if(i[1]< 0.25):
             break
         recommended_article_title = titles_orig[i[0]]
         article_description = overviews_orig[i[0]]
@@ -104,7 +104,7 @@ def recommend_mysql_articles():
         try:
             db.ping(reconnect=True)
             with db.cursor() as cursor:
-                cursor.execute('INSERT INTO read_history (article_id, author_id) VALUES (%s, %s)', (article_id, author_id))
+                cursor.execute('INSERT INTO read_history (article_id, author_id) VALUES (%s, %s)', (article_id+1, author_id))
                 db.commit()
         except pymysql.Error as e:
             return jsonify({'message': 'Error inserting read history.', 'error_details': str(e)}), 500
@@ -114,7 +114,9 @@ def recommend_mysql_articles():
         if recommendations:
             return jsonify(
                 {   'message': 'Successfully saved to read history.',
-                    'data': recommendations
+                    'related_articles': recommendations[1:],
+                    'selected_article' : recommendations[:1]
+                    
                 })
         else:
             return jsonify({'message': 'No recommendations found.', 'recommendations': recommendations})
