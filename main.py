@@ -61,23 +61,46 @@ for n, title in enumerate(titles):
     # Calculate cosine similarity for titles
     vectorizer_titles =  vectorizer.transform(titles)
     cosine_sim_titles = cosine_similarity(vectorizer_titles)
-
+    
+    article_id_to_index = {}  # Create an empty mapping
+    for index, article_id in enumerate(id):
+        article_id_to_index[article_id] = index
 def get_article_recommendations( article_id, overviews_similarity_matrix, titles_similarity_matrix):
     combined_similarity = 0.2 * overviews_similarity_matrix + 0.8 * titles_similarity_matrix
+    
 
-    similar_articles = list(enumerate(combined_similarity[article_id]))
-    similar_articles = sorted(similar_articles, key=lambda x: x[1], reverse=True)
-    recommended_articles = []
+
+    
+    if article_id in article_id_to_index:
+        index = article_id_to_index[article_id]
+        similar_articles = combined_similarity[index]
+        similar_articles = sorted(enumerate(similar_articles), key=lambda x: x[1], reverse=True)
+        recommended_articles = []
+        
+        for i in similar_articles:
+            if i[1] < 0.25:
+                break
+            recommended_article_title = titles_orig[i[0]]
+            article_description = overviews_orig[i[0]]
+            recommended_articles.append({'title': recommended_article_title, 'article_id': id[i[0]], 'score': i[1]})
+
+        return recommended_articles
+    else:
+        return "Article ID not found in the mapping."
+
+    # similar_articles = list(enumerate(combined_similarity[article_id]))
+    # similar_articles = sorted(similar_articles, key=lambda x: x[1], reverse=True)
+    # recommended_articles = []
     
     # Calculate a recommendation score based on similarity (cosine similarity)
-    for i in similar_articles:
-        if(i[1]< 0.25):
-            break
-        recommended_article_title = titles_orig[i[0]]
-        article_description = overviews_orig[i[0]]
-        recommended_articles.append({'title': recommended_article_title, 'article_id': id[i[0]], 'score': i[1]})
+    # for i in similar_articles:
+    #     if(i[1]< 0.25):
+    #         break
+    #     recommended_article_title = titles_orig[i[0]]
+    #     article_description = overviews_orig[i[0]]
+    #     recommended_articles.append({'title': recommended_article_title, 'article_id': id[i[0]], 'score': i[1]})
 
-    return recommended_articles
+    
 
 @app.route('/articles/<string:articleTitle>', methods=['GET'])
 def get_articles_by_title(articleTitle):
@@ -98,7 +121,7 @@ def recommend_mysql_articles():
         if 'article_id' not in data or 'author_id' not in data:
             return jsonify({'message': 'Both article_id and author_id must be provided.'}), 400
 
-        article_id = data['article_id']-1
+        article_id = data['article_id']
         author_id = data['author_id']
      
         try:
