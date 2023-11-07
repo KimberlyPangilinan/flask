@@ -134,15 +134,15 @@ def recommend_mysql_articles():
 
         recommendations = get_article_recommendations(article_id, cosine_sim_overviews, cosine_sim_titles)
 
-        if recommendations:
-            return jsonify(
-                {   'message': 'Successfully saved to read history.',
-                    'related_articles': recommendations[1:],
-                    'selected_article' : recommendations[:1]
-                    
-                })
+        if isinstance(recommendations, list):  # Check if recommendations is a list
+            return jsonify({
+                'message': 'Successfully saved to read history.',
+                'related_articles': recommendations[1:],
+                'selected_article': recommendations[:1]
+            })
+       
         else:
-            return jsonify({'message': 'No recommendations found.', 'recommendations': recommendations})
+            return jsonify({'error': recommendations})
 
     if request.method == 'GET':
         db.ping(reconnect=True)
