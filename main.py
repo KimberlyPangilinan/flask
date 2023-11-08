@@ -166,17 +166,18 @@ def recommendBasedHistory(author_id):
             results = []
 
             for i in range(len(article_ids)):
-                recommendations = get_article_recommendations(i, cosine_sim_overviews, cosine_sim_titles)[1:]
+                recommendations = get_article_recommendations(article_ids[i], cosine_sim_overviews, cosine_sim_titles)[1:]
                 if len(recommendations) < 1:
                     continue
                 temp.append(recommendations)
+                print(temp)
                 if len(temp) > 5:
                     break
 
             for article_group in temp:
                 for article in article_group:
-                    article_id = article['article_id']
-                    results.append({'article_id': article_id, 'title': article['title'], 'score': article['score']})
+                  
+                    results.append(article)  # Fix the KeyError here
 
             return jsonify({'personalized_recommendations': results,'history':history,'user_id': author_id})
 
