@@ -102,13 +102,48 @@ def get_article_recommendations( article_id, overviews_similarity_matrix, titles
 
     
 
-@app.route('/articles/<string:articleTitle>', methods=['GET'])
-def get_articles_by_title(articleTitle):
+# @app.route('/articles/<string:articleTitle>', methods=['GET'])
+# def get_articles_by_title(articleTitle):
+#     try:
+#         with db.cursor() as cursor:
+#             cursor.execute('SELECT * FROM article WHERE title LIKE %s', (f"%{articleTitle}%",))  
+#             data = cursor.fetchall()
+#             return jsonify(data)
+#     except Exception as e:
+#         return jsonify({'error': 'An error occurred while fetching article data.'}), 500
+
+from flask import Flask, request, jsonify
+import pymysql.cursors
+
+app = Flask(__name__)
+
+# Assuming you have a database connection named 'db'
+# db = ...
+
+@app.route('/articles/search', methods=['GET'])
+def get_articles_by_title():
+    data = request.get_json()
+    dates = data['dates']
+    title = data['title']
+    keyword= data['keyword']
+
     try:
+        db.ping(reconnect=True)
         with db.cursor() as cursor:
-            cursor.execute('SELECT * FROM article WHERE title LIKE %s', (f"%{articleTitle}%",))  
-            data = cursor.fetchall()
-            return jsonify(data)
+            date_conditions = ' OR '.join(['date LIKE %s' for _ in dates])
+            query = f'''
+                SELECT title, date
+                FROM article
+                WHERE ({date_conditions})
+                AND title LIKE %s
+                AND keyword LIKE %s
+            '''
+            params = tuple([f"%{date}%" for date in dates] + [f"%{title}%"] + [f"%{keyword}%"])
+
+            cursor.execute(query, params)
+            result = cursor.fetchall()
+
+            return jsonify(result)
     except Exception as e:
         return jsonify({'error': 'An error occurred while fetching article data.'}), 500
 
@@ -170,7 +205,7 @@ def recommendBasedHistory(author_id):
                 if len(recommendations) < 1:
                     continue
                 temp.append(recommendations)
-                print(temp)
+              
                 if len(temp) > 5:
                     break
 
