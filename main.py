@@ -8,6 +8,7 @@ import pymysql
 import numpy as np
 
 app = Flask(__name__)
+app.json.sort_keys = False
 CORS(app) 
 
 db = pymysql.connect(
@@ -124,27 +125,55 @@ app = Flask(__name__)
 def get_articles_by_title():
     data = request.get_json()
     dates = data['dates']
-    title = data['title']
-    keyword= data['keyword']
+    journal = data['journal']
+    input = data['input']
+    
+    
 
     try:
         db.ping(reconnect=True)
         with db.cursor() as cursor:
+            input_array = [i.lower().strip() for i in input.split(",")]
             date_conditions = ' OR '.join(['date LIKE %s' for _ in dates])
+            title_conditions = ' OR '.join('title LIKE %s' for i in input_array)
+            keyword_conditions = ' OR '.join('keyword LIKE %s' for i in input_array)
+            author_condition = ' OR '.join('author LIKE %s' for i in input_array)
+            
             query = f'''
-                SELECT title, date
-                FROM article
+                SELECT title, date, keyword, author
+                FROM article 
                 WHERE ({date_conditions})
-                AND title LIKE %s
-                AND keyword LIKE %s
+                AND journal_id LIKE %s
+                AND
+                (
+                    {title_conditions}
+                    OR {keyword_conditions}
+                    OR {author_condition}
+                   
+                );
             '''
-            params = tuple([f"%{date}%" for date in dates] + [f"%{title}%"] + [f"%{keyword}%"])
-
+            input_params = [f"%{input}%" for input in input_array]
+            params = [f"%{date}%" for date in dates] + [f"%{journal}%"] + input_params + input_params + input_params
+            print(date_conditions)
+            print(params)
+            print(journal)
+            
             cursor.execute(query, params)
             result = cursor.fetchall()
-
-            return jsonify(result)
+            
+            for i in range(len(result)): ## Adding contains to each result
+                result[i]["article_contains"]=[]
+            
+            article_info = [result[info]["title"]+result[info]["author"]+result[info]["keyword"] for info in range(len(result))]
+            
+            for input in input_array:
+                for n,info in enumerate(article_info):
+                    if input in info.lower():
+                        result[n]["article_contains"].append(input)
+            result = sorted(result,  key=lambda x: len(x["article_contains"]), reverse= True)
+            return jsonify({"results": result, "total": len(result)})
     except Exception as e:
+        print(e)
         return jsonify({'error': 'An error occurred while fetching article data.'}), 500
 
 
@@ -205,7 +234,7 @@ def recommendBasedHistory(author_id):
                 if len(recommendations) < 1:
                     continue
                 temp.append(recommendations)
-              
+                print(temp)
                 if len(temp) > 5:
                     break
 
