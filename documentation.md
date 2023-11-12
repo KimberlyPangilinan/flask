@@ -59,35 +59,36 @@ Here's an example of how to use the Recommendation System API:
 
 1. To retrieve all articles:
    - Send a GET request to `/articles`.
-   - ```
-     https://web-production-9662.up.railway.app/articles ## GET
-     ```
-     ![image](https://github.com/KimberlyPangilinan/qoaj-recommendation-api/assets/92774426/b3649c03-0d61-4af5-9325-a9ee58cb603d)
 
-1. To retrieve articles by title:
-   - Send a GET request to `/articles/<articleTitle>`.
-   - ```
-     https://web-production-9662.up.railway.app/articles/gender ## GET
-     ```
-     ![image](https://github.com/KimberlyPangilinan/qoaj-recommendation-api/assets/92774426/53a29c4a-b022-41c1-8809-8a0e6b972bc0)
 
-2. To recommend articles and save user interactions:
-   - Send a POST request to `/articles` with the JSON payload containing `article_id` and `author_id`.
+
+2. To retrieve articles using advanced filtering and searching:
+   - Send a GET request to `/articles/search`  with the JSON payload containing `dates`, `journal`, `input`..
    - ```
-     https://web-production-9662.up.railway.app/articles ## POST
+      {   
+          // for filtering
+          "dates":[2023,2022], 
+          "journal": "", 
+          // for searching (title, keyword, author)
+          "input": "education, online learning" 
+        
+      }
+    ```
+
+
+3. To recommend articles and save user interactions:
+   - Send a POST request to `/articles/recommendations` with the JSON payload containing `article_id` and `author_id`.
+   - ```
      {
        "article_id": 20,
        "author_id":2
      }
      ```
-  ![image](https://github.com/KimberlyPangilinan/qoaj-recommendation-api/assets/92774426/b71b0869-89d3-4f5f-a4d9-306758eea994)
+
 
 3. To receive personalized recommendations based on user history:
-   - Send a GET request to `/articles/history/<author_id>`.
-   - ```
-     https://web-production-9662.up.railway.app/articles/history/2  ## GET
-     ```
-  ![image](https://github.com/KimberlyPangilinan/qoaj-recommendation-api/assets/92774426/ca97533f-e493-4286-abe6-07e5921dc59e)
+   - Send a GET request to `/articles/recommendations/<author_id>`.
+ 
 
 ## Technologies Used
 

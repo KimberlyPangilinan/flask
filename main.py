@@ -120,16 +120,21 @@ app = Flask(__name__)
 
 # Assuming you have a database connection named 'db'
 # db = ...
+@app.route('/articles', methods=['POST','GET'])
+def get_articles():
+    db.ping(reconnect=True)
+    with db.cursor() as cursor:
+        cursor.execute('SELECT * FROM article limit 100')
+        data = cursor.fetchall()
 
+    return jsonify(data)
+            
 @app.route('/articles/search', methods=['GET'])
 def get_articles_by_title():
     data = request.get_json()
     dates = data['dates']
     journal = data['journal']
     input = data['input']
-    
-    
-
     try:
         db.ping(reconnect=True)
         with db.cursor() as cursor:
@@ -176,47 +181,37 @@ def get_articles_by_title():
         print(e)
         return jsonify({'error': 'An error occurred while fetching article data.'}), 500
 
+@app.route('/articles/recommendations', methods=['POST'])
+def get_recommendations_based_on_current():
+    data = request.get_json()
+    
+    if 'article_id' not in data or 'author_id' not in data:
+        return jsonify({'message': 'Both article_id and author_id must be provided.'}), 400
 
-@app.route('/articles', methods=['POST','GET'])
-def recommend_mysql_articles():
-    if request.method == 'POST':
-        data = request.get_json()
-        
-        if 'article_id' not in data or 'author_id' not in data:
-            return jsonify({'message': 'Both article_id and author_id must be provided.'}), 400
-
-        article_id = data['article_id']
-        author_id = data['author_id']
-     
-        try:
-            db.ping(reconnect=True)
-            with db.cursor() as cursor:
-                cursor.execute('INSERT INTO read_history (article_id, author_id) VALUES (%s, %s)', (article_id, author_id))
-                db.commit()
-        except pymysql.Error as e:
-            return jsonify({'message': 'Error inserting read history.', 'error_details': str(e)}), 500
-
-        recommendations = get_article_recommendations(article_id, cosine_sim_overviews, cosine_sim_titles)
-
-        if isinstance(recommendations, list):  # Check if recommendations is a list
-            return jsonify({
-                'message': 'Successfully saved to read history.',
-                'related_articles': recommendations[1:],
-                'selected_article': recommendations[:1]
-            })
-       
-        else:
-            return jsonify({'error': recommendations})
-
-    if request.method == 'GET':
+    article_id = data['article_id']
+    author_id = data['author_id']
+    
+    try:
         db.ping(reconnect=True)
         with db.cursor() as cursor:
-            cursor.execute('SELECT * FROM article limit 100')
-            data = cursor.fetchall()
+            cursor.execute('INSERT INTO read_history (article_id, author_id) VALUES (%s, %s)', (article_id, author_id))
+            db.commit()
+    except pymysql.Error as e:
+        return jsonify({'message': 'Error inserting read history.', 'error_details': str(e)}), 500
 
-        return jsonify(data)
-            
-@app.route('/articles/history/<int:author_id>', methods=['GET'])
+    recommendations = get_article_recommendations(article_id, cosine_sim_overviews, cosine_sim_titles)
+
+    if isinstance(recommendations, list):  # Check if recommendations is a list
+        return jsonify({
+            'message': 'Successfully saved to read history.',
+            'related_articles': recommendations[1:],
+            'selected_article': recommendations[:1]
+        })
+    
+    else:
+        return jsonify({'error': recommendations})
+
+@app.route('/articles/recommendations/<int:author_id>', methods=['GET'])
 def recommendBasedHistory(author_id):
     try:
         db.ping(reconnect=True)
@@ -247,6 +242,7 @@ def recommendBasedHistory(author_id):
 
     except pymysql.Error as e:
         return jsonify({'message': 'Error fetching recommendations based on read_history', 'error_details': str(e)}), 500
+
 
 
 if __name__ == '__main__':
