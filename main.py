@@ -120,7 +120,7 @@ app = Flask(__name__)
 
 # Assuming you have a database connection named 'db'
 # db = ...
-@app.route('/articles', methods=['POST','GET'])
+@app.route('/articles', methods=['GET'])
 def get_articles():
     db.ping(reconnect=True)
     with db.cursor() as cursor:
@@ -242,6 +242,16 @@ def recommendBasedHistory(author_id):
 
     except pymysql.Error as e:
         return jsonify({'message': 'Error fetching recommendations based on read_history', 'error_details': str(e)}), 500
+
+@app.route('/articles/recommendations', methods=['GET'])
+def get_popular_articles():
+    db.ping(reconnect=True)
+    with db.cursor() as cursor:
+        cursor.execute('SELECT article.article_id, article.title, COUNT(read_history.article_id) AS number_of_reads FROM article LEFT JOIN read_history ON article.article_id = read_history.article_id WHERE MONTH(read_history.last_review) = MONTH(CURRENT_DATE()) AND YEAR(read_history.last_review) = YEAR(CURRENT_DATE()) GROUP BY article.article_id, article.title HAVING MAX(read_history.last_review) = MAX(read_history.last_review) ORDER BY number_of_reads DESC LIMIT 5;')
+        data = cursor.fetchall()
+
+    return {"monthly_recommendations": data}
+      
 
 
 
