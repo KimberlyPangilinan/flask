@@ -7,88 +7,155 @@ This documentation provides an overview of the endpoints and functionality of th
 The Recommendation System API is designed to provide recommendations based on user interactions and text analysis. It uses cosine similarity to recommend articles that are similar to those previously read by the user.
 
 ## Endpoints
+1. Get Articles
 
-### 1. Get All Articles
+    - Endpoint: `/articles`
+    - Methods: `GET`
+    - Description: Get a list of articles.
+    - Response Format: JSON
+    Example Response:
 
-This endpoint allows you to retrieve articles by their titles.
-
-- **URL:** `/articles`
-- **Method:** GET
-- **Response:**
-  - JSON object containing all articles.
-### 2. Get Articles by Title
-
-This endpoint allows you to retrieve articles by their titles.
-
-- **URL:** `/articles/<string:articleTitle>`
-- **Method:** GET
-- **Parameters:**
-  - `articleTitle` (string): The title of the article to search for.
-- **Response:**
-  - JSON object containing article data matching the search title all title that contains the keyword.
-
-### 3. Recommend MySQL Articles
-
-This endpoint enables you to receive article recommendations based on user interactions.
-
-- **URL:** `/articles`
-- **Methods:** POST (to add user interactions) and GET (to retrieve a list of articles).
-- **Parameters (POST method):**
-  - `article_id` (int): The ID of the article the user interacted with.
-  - `author_id` (int): The ID of the user.
-- **Response (POST method):**
-  - JSON object containing a message and article recommendations.
-- **Response (GET method):**
-  - JSON object containing a list of articles.
+    ```json
 
 
-### 4. Recommend Articles Based on User History
-
-This endpoint provides personalized recommendations based on a user's reading history.
-
-- **URL:** `/articles/history/<int:author_id>`
-- **Method:** GET
-- **Parameters:**
-  - `author_id` (int): The ID of the user for whom personalized recommendations are requested.
-- **Response:**
-  - JSON object containing personalized recommendations, user history, and user ID.
-
-## Sample Usage
-
-Here's an example of how to use the Recommendation System API:
-
-1. To retrieve all articles:
-   - Send a GET request to `/articles`.
-
-
-
-2. To retrieve articles using advanced filtering and searching:
-   - Send a GET request to `/articles/search`  with the JSON payload containing `dates`, `journal`, `input`..
-   - ```
-      {   
-          // for filtering
-          "dates":[2023,2022], 
-          "journal": "", 
-          // for searching (title, keyword, author)
-          "input": "education, online learning" 
-        
-      }
+    [
+      {
+          "abstract": "his paper assessed the effects of social iso...",
+          "article_id": 4,
+          "author": "Renielle S. Rogel",
+          "author_id": 1,
+          "content": "-",
+          "date": "March 2023",
+          "date_added": "0000-00-00 00:00:00",
+          "journal_id": 1,
+          "keyword": "social isolation, work satisfaction, stress, work productivity",
+          "publication_date": "Sat, 04 Nov 2023 19:55:53 GMT",
+          "references": "",
+          "status": "1",
+          "step": 0,
+          "title": "The Effects of Social Isolation, Remote Work Satisfaction, and ..",
+          "volume": "Volume 1"
+      },
+      
+    ]
     ```
 
+2. Search Articles
 
-3. To recommend articles and save user interactions:
-   - Send a POST request to `/articles/recommendations` with the JSON payload containing `article_id` and `author_id`.
-   - ```
-     {
-       "article_id": 20,
-       "author_id":2
-     }
-     ```
+    - Endpoint: `/articles/search`
+    - Methods: `GET`
+    - Description: Search articles based on specified criteria.
+    - Parameters:
+        `dates` (list): `List of date ranges`.
+        `journal` (string): `Journal name`.
+        `input` (string): `Keywords for search`.
+    - Response Format: JSON
+    Example Response:
 
+    ```json
 
-3. To receive personalized recommendations based on user history:
-   - Send a GET request to `/articles/recommendations/<author_id>`.
- 
+   {
+    "results": [
+        {
+            "article_contains": [
+                "education",
+                "online learning"
+            ],
+            "article_id": 13,
+            "author": "Romar B. Reyes",
+            "date": "March 2023",
+            "keyword": "challenges, online learning, Covid-19 pandemic, laboratory teachers, implementation",
+            "title": "Physical Plant and Instructional Support Facilities of Diocese of Imus Catholic Educational System (DICES), Inc. Schools"
+        },
+        {
+            "article_contains": [
+                "online learning"
+            ],
+            "article_id": 10,
+            "author": "Donalyn Dizon, Rafael Tabunda, Josephine Uy",
+            "date": "March 2023",
+            "keyword": "speaking, video recording, oral communication, integration, online learning",
+            "title": "A Classroom-based Action Research on Selected First Year Infor- mati...-2022"
+        },
+    ```
+
+3. Get Recommendations Based on Current Article
+
+    - Endpoint: `/articles/recommendations`
+    - Methods: `POST`
+    - Description: Get article recommendations based on the current article.
+    - Request Format: JSON
+
+    ```json
+    {
+        "article_id": 1,
+        "author_id": 123
+    }
+    ```
+
+Response Format: JSON
+Example Response:
+
+```json
+
+{
+    "message": "Successfully saved to read history.",
+    "related_articles": [
+        {
+            "article_id": 20,
+            "score": 0.2797474614474822,
+            "title": "The Perspectives and Preferences of BSIT Students at Quezon City University in Online Learning"
+        },
+        {
+            "article_id": 27,
+            "score": 0.2603498525730653,
+            "title": "A Discourse Analysis of Ableist Construction of Students with Disabilities in Mainstream Secondary Education"
+        }
+    ],
+    "selected_article": [
+        {
+            "article_id": 16,
+            "score": 0.9999999999999998,
+            "title": "Course Preferences among Education Students"
+        }
+    ]
+}
+```
+
+4. Get Recommendations Based on Read History
+
+    - Endpoint: `/articles/recommendations/<int:author_id>`
+    - Methods: `GET`
+    - Description: Get personalized recommendations based on the user's read history.
+   
+    - Response Format: JSON
+    Example Response:
+
+    ```json
+
+    {
+        "history": [
+            {
+                "article_id": 16,
+                "title": "Course Preferences among Education Students"
+            }
+        ],
+        "personalized_recommendations": [
+            {
+                "article_id": 174,
+                "score": 0.35056245106637396,
+                "title": "Impact of Part-time Job on Academic Performance of 3rd Year College Student in Quezon City University"
+            },
+            {
+                "article_id": 50,
+                "score": 0.345049622029431,
+                "title": "Gender Perspectives of Selected First year Students: An Exploratory Study"
+            }
+        ],
+        "user_id": 1
+    }
+    ```
+
 
 ## Technologies Used
 
