@@ -87,7 +87,7 @@ def get_article_recommendations( article_id, overviews_similarity_matrix, titles
 
         return recommended_articles
     else:
-        return "Article ID not found in the mapping."
+        return ["Article ID not found in the mapping."]
 
     # similar_articles = list(enumerate(combined_similarity[article_id]))
     # similar_articles = sorted(similar_articles, key=lambda x: x[1], reverse=True)
@@ -140,7 +140,7 @@ def get_articles_by_title():
             author_condition = ' OR '.join('author LIKE %s' for i in input_array)
             
             query = f'''
-                SELECT title, date, keyword, author
+                SELECT title, date, article_id, keyword, author
                 FROM article 
                 WHERE ({date_conditions})
                 AND journal_id LIKE %s
@@ -191,7 +191,7 @@ def recommend_mysql_articles():
         try:
             db.ping(reconnect=True)
             with db.cursor() as cursor:
-                cursor.execute('INSERT INTO read_history (article_id, author_id) VALUES (%s, %s)', (article_id+1, author_id))
+                cursor.execute('INSERT INTO read_history (article_id, author_id) VALUES (%s, %s)', (article_id, author_id))
                 db.commit()
         except pymysql.Error as e:
             return jsonify({'message': 'Error inserting read history.', 'error_details': str(e)}), 500
@@ -221,9 +221,9 @@ def recommendBasedHistory(author_id):
     try:
         db.ping(reconnect=True)
         with db.cursor() as cursor:
-            cursor.execute('SELECT * FROM read_history where author_id = %s', (author_id,))
+            cursor.execute('SELECT article.article_id, article.title, read_history.author_id FROM article INNER JOIN read_history ON article.article_id = read_history.article_id where read_history.author_id = %s', (author_id,))
             data = cursor.fetchall()[::-1]
-            history = [int(row['article_id']) for row in data]
+            history = [{'article_id': int(row['article_id']), 'title': row['title']} for row in data]
             article_ids = [row['article_id'] for row in data]
             article_ids = np.unique(article_ids)
             temp = []
