@@ -110,6 +110,7 @@ def get_articles_by_title():
             title_conditions = ' OR '.join('title LIKE %s' for i in input_array)
             keyword_conditions = ' OR '.join('keyword LIKE %s' for i in input_array)
             author_condition = ' OR '.join('author LIKE %s' for i in input_array)
+            id_condition = ' OR '.join('article_id LIKE %s' for i in input_array)
             
             query = f'''
                 SELECT title, date, article_id, keyword, author
@@ -121,11 +122,12 @@ def get_articles_by_title():
                     {title_conditions}
                     OR {keyword_conditions}
                     OR {author_condition}
+                    OR {id_condition}
                    
                 );
             '''
             input_params = [f"%{input}%" for input in input_array]
-            params = [f"%{date}%" for date in dates] + [f"%{journal}%"] + input_params + input_params + input_params
+            params = [f"%{date}%" for date in dates] + [f"%{journal}%"] + input_params + input_params + input_params + input_params
             print(date_conditions)
             print(params)
             print(journal)
@@ -201,10 +203,8 @@ def get_reco_based_on_history(author_id):
                                 COUNT(logs.article_id) AS total_interactions
                             FROM article LEFT JOIN logs ON article.article_id = logs.article_id
                             WHERE logs.author_id = %s
-                            GROUP BY 
-                                article.article_id
-                            ORDER BY 
-                                date DESC
+                            GROUP BY article.article_id
+                            ORDER BY date DESC
                             LIMIT 5;
                            """,(author_id))
             data = cursor.fetchall()
