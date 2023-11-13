@@ -16,7 +16,7 @@ The Recommendation System API is designed to provide recommendations based on us
 2. Search Articles
 
     - Endpoint: `/articles/search`
-    - Methods: `GET`
+    - Methods: `POST`
     - Description: Search articles based on specified criteria.
     - Parameters:
         `dates` (list): `List of date ranges`.

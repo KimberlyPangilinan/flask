@@ -96,7 +96,7 @@ def get_articles():
 
     return jsonify(data)
             
-@app.route('/articles/search', methods=['GET'])
+@app.route('/articles/search', methods=['POST'])
 def get_articles_by_title():
     data = request.get_json()
     dates = data['dates']
