@@ -235,7 +235,7 @@ def get_reco_based_on_history(author_id):
     except pymysql.Error as e:
         return jsonify({'message': 'Error fetching recommendations based on logs', 'error_details': str(e)}), 500
 
-@app.route('/articles/recommendations', methods=['GET'])
+@app.route('/articles/recommendations', methods=['POST'])
 def get_reco_based_on_popularity():
     db.ping(reconnect=True)
     data = request.get_json()
