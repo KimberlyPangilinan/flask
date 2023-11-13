@@ -69,9 +69,6 @@ for n, title in enumerate(titles):
 def get_article_recommendations( article_id, overviews_similarity_matrix, titles_similarity_matrix):
     combined_similarity = 0.2 * overviews_similarity_matrix + 0.8 * titles_similarity_matrix
     
-
-
-    
     if article_id in article_id_to_index:
         index = article_id_to_index[article_id]
         similar_articles = combined_similarity[index]
@@ -89,37 +86,7 @@ def get_article_recommendations( article_id, overviews_similarity_matrix, titles
     else:
         return ["Article ID not found in the mapping."]
 
-    # similar_articles = list(enumerate(combined_similarity[article_id]))
-    # similar_articles = sorted(similar_articles, key=lambda x: x[1], reverse=True)
-    # recommended_articles = []
-    
-    # Calculate a recommendation score based on similarity (cosine similarity)
-    # for i in similar_articles:
-    #     if(i[1]< 0.25):
-    #         break
-    #     recommended_article_title = titles_orig[i[0]]
-    #     article_description = overviews_orig[i[0]]
-    #     recommended_articles.append({'title': recommended_article_title, 'article_id': id[i[0]], 'score': i[1]})
 
-    
-
-# @app.route('/articles/<string:articleTitle>', methods=['GET'])
-# def get_articles_by_title(articleTitle):
-#     try:
-#         with db.cursor() as cursor:
-#             cursor.execute('SELECT * FROM article WHERE title LIKE %s', (f"%{articleTitle}%",))  
-#             data = cursor.fetchall()
-#             return jsonify(data)
-#     except Exception as e:
-#         return jsonify({'error': 'An error occurred while fetching article data.'}), 500
-
-from flask import Flask, request, jsonify
-import pymysql.cursors
-
-app = Flask(__name__)
-
-# Assuming you have a database connection named 'db'
-# db = ...
 @app.route('/articles', methods=['GET'])
 def get_articles():
     db.ping(reconnect=True)
@@ -182,7 +149,7 @@ def get_articles_by_title():
         return jsonify({'error': 'An error occurred while fetching article data.'}), 500
 
 @app.route('/articles/recommendations', methods=['POST'])
-def get_reco_based_on_selected():
+def recommend_and_add_to_history():
     data = request.get_json()
     
     if 'article_id' not in data or 'author_id' not in data:
@@ -216,9 +183,19 @@ def get_reco_based_on_history(author_id):
     try:
         db.ping(reconnect=True)
         with db.cursor() as cursor:
-            cursor.execute('SELECT article.article_id, article.title, read_history.author_id FROM article INNER JOIN read_history ON article.article_id = read_history.article_id where read_history.author_id = %s', (author_id,))
-            data = cursor.fetchall()[::-1]
-            history = [{'article_id': int(row['article_id']), 'title': row['title']} for row in data]
+            cursor.execute("""
+                           SELECT 
+                                article.article_id, article.title, MAX(read_history.last_review) AS latest_review,
+                                COUNT(read_history.article_id) AS number_of_reads
+                            FROM article LEFT JOIN read_history ON article.article_id = read_history.article_id
+                            WHERE read_history.author_id = %s
+                            GROUP BY 
+                                article.article_id
+                            ORDER BY 
+                                latest_review DESC
+                            LIMIT 5;
+                           """,(author_id))
+            data = cursor.fetchall()
             article_ids = [row['article_id'] for row in data]
             article_ids = np.unique(article_ids)
             temp = []
@@ -229,16 +206,19 @@ def get_reco_based_on_history(author_id):
                 if len(recommendations) < 1:
                     continue
                 temp.append(recommendations)
-                print(temp)
-                if len(temp) > 5:
-                    break
+                # print(temp)
+                # if len(temp) > 3:
+                #     break
 
             for article_group in temp:
                 for article in article_group:
-                  
-                    results.append(article)  # Fix the KeyError here
+                    if article['article_id'] not in article_ids:
+                        results.append(article)
+            
+            results = sorted(results,  key=lambda x: x["score"], reverse= True)[:10]
+                    
 
-            return jsonify({'personalized_recommendations': results,'history':history,'user_id': author_id})
+            return jsonify({'personalized_recommendations': results,'history':data,'user_id': author_id})
 
     except pymysql.Error as e:
         return jsonify({'message': 'Error fetching recommendations based on read_history', 'error_details': str(e)}), 500
@@ -282,8 +262,6 @@ def get_reco_based_on_popularity():
         data = cursor.fetchall()
 
     return {"recommendations": data}
-      
-
 
 
 if __name__ == '__main__':
