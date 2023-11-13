@@ -148,7 +148,7 @@ def get_articles_by_title():
         print(e)
         return jsonify({'error': 'An error occurred while fetching article data.'}), 500
 
-@app.route('/articles/recommendations', methods=['POST'])
+@app.route('/articles/logs/read', methods=['POST'])
 def recommend_and_add_to_history():
     data = request.get_json()
     
@@ -161,7 +161,7 @@ def recommend_and_add_to_history():
     try:
         db.ping(reconnect=True)
         with db.cursor() as cursor:
-            cursor.execute('INSERT INTO read_history (article_id, author_id) VALUES (%s, %s)', (article_id, author_id))
+            cursor.execute('INSERT INTO logs (article_id, author_id) VALUES (%s, %s)', (article_id, author_id))
             db.commit()
     except pymysql.Error as e:
         return jsonify({'message': 'Error inserting read history.', 'error_details': str(e)}), 500
@@ -178,6 +178,18 @@ def recommend_and_add_to_history():
     else:
         return jsonify({'error': recommendations})
 
+@app.route('/articles/logs/download',methods=['POST'])
+def insert_downloads():
+        data = request.get_json()
+        article_id = data['article_id']
+        author_id = data['author_id']
+        db.ping(reconnect=True)
+        with db.cursor() as cursor:
+            cursor.execute('INSERT INTO logs (article_id, author_id,type) VALUES (%s, %s, "download")', (article_id, author_id))
+            db.commit()
+            
+        return jsonify({'message': f"{article_id} is successfully inserted to downloads log"})
+
 @app.route('/articles/recommendations/<int:author_id>', methods=['GET'])
 def get_reco_based_on_history(author_id):
     try:
@@ -185,14 +197,14 @@ def get_reco_based_on_history(author_id):
         with db.cursor() as cursor:
             cursor.execute("""
                            SELECT 
-                                article.article_id, article.title, MAX(read_history.last_review) AS latest_review,
-                                COUNT(read_history.article_id) AS number_of_reads
-                            FROM article LEFT JOIN read_history ON article.article_id = read_history.article_id
-                            WHERE read_history.author_id = %s
+                                article.article_id, article.title, MAX(logs.date) AS date,
+                                COUNT(logs.article_id) AS total_interactions
+                            FROM article LEFT JOIN logs ON article.article_id = logs.article_id
+                            WHERE logs.author_id = %s
                             GROUP BY 
                                 article.article_id
                             ORDER BY 
-                                latest_review DESC
+                                date DESC
                             LIMIT 5;
                            """,(author_id))
             data = cursor.fetchall()
@@ -212,7 +224,7 @@ def get_reco_based_on_history(author_id):
 
             for article_group in temp:
                 for article in article_group:
-                    if article['article_id'] not in article_ids:
+                    if article['article_id'] not in article_ids and not any(article['article_id'] == res['article_id'] for res in results):
                         results.append(article)
             
             results = sorted(results,  key=lambda x: x["score"], reverse= True)[:10]
@@ -221,7 +233,7 @@ def get_reco_based_on_history(author_id):
             return jsonify({'personalized_recommendations': results,'history':data,'user_id': author_id})
 
     except pymysql.Error as e:
-        return jsonify({'message': 'Error fetching recommendations based on read_history', 'error_details': str(e)}), 500
+        return jsonify({'message': 'Error fetching recommendations based on logs', 'error_details': str(e)}), 500
 
 @app.route('/articles/recommendations', methods=['GET'])
 def get_reco_based_on_popularity():
@@ -235,12 +247,12 @@ def get_reco_based_on_popularity():
                 SELECT 
                     article.article_id, 
                     article.title, 
-                    COUNT(read_history.article_id) AS number_of_reads
+                    COUNT(logs.article_id) AS total_interactions
                 FROM article 
-                LEFT JOIN read_history ON article.article_id = read_history.article_id
-                WHERE DATE_FORMAT(read_history.last_review, '%Y-%m') = DATE_FORMAT(CURRENT_DATE(), '%Y-%m')
+                LEFT JOIN logs ON article.article_id = logs.article_id
+                WHERE DATE_FORMAT(logs.date, '%Y-%m') = DATE_FORMAT(CURRENT_DATE(), '%Y-%m')
                 GROUP BY article.article_id
-                ORDER BY number_of_reads DESC
+                ORDER BY total_interactions DESC
                 LIMIT 5;
             """)
         elif period == 'weekly':
@@ -248,13 +260,13 @@ def get_reco_based_on_popularity():
                 SELECT 
                     article.article_id, 
                     article.title, 
-                    COUNT(read_history.article_id) AS number_of_reads
+                    COUNT(logs.article_id) AS total_interactions
                 FROM article 
-                LEFT JOIN read_history ON article.article_id = read_history.article_id
-                WHERE WEEK(read_history.last_review) = WEEK(CURRENT_DATE())
+                LEFT JOIN logs ON article.article_id = logs.article_id
+                WHERE WEEK(logs.date) = WEEK(CURRENT_DATE())
                 GROUP BY article.article_id
-                ORDER BY number_of_reads DESC
-                LIMIT 5;
+                ORDER BY total_interactions DESC
+                ;
             """)
         else:
             return {"error": "Invalid period parameter. Use 'monthly' or 'weekly'."}, 400
