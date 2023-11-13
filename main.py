@@ -19,7 +19,31 @@ db = pymysql.connect(
     connect_timeout=8800,
     cursorclass=pymysql.cursors.DictCursor
 )
-sql_query= 'SELECT article.article_id, article.title, article.author, article.date, article.abstract, journal.journal, article.keyword FROM article LEFT JOIN journal ON article.journal_id = journal.journal_id'
+sql_query= """
+            SELECT 
+                article.article_id, 
+                article.title, 
+                article.author, 
+                article.date, 
+                article.abstract, 
+                journal.journal, 
+                article.keyword, 
+                files.file_name, 
+                COUNT(CASE WHEN logs.type = 'read' THEN 1 END) AS total_reads,
+                COUNT(CASE WHEN logs.type = 'download' THEN 1 END) AS total_downloads
+            FROM 
+                article 
+            LEFT JOIN 
+                journal ON article.journal_id = journal.journal_id 
+            LEFT JOIN 
+                logs ON article.article_id = logs.article_id 
+            LEFT JOIN 
+                files ON article.article_id = files.article_id
+            GROUP BY
+                article.article_id 
+     
+
+           """
 db.ping(reconnect=True)
 cursor = db.cursor()
 cursor.execute(sql_query)
@@ -121,8 +145,17 @@ def get_articles_by_title():
             id_condition = ' OR '.join('article.article_id LIKE %s' for i in input_array)
             
             query = f'''
-                SELECT article.article_id, article.title, article.author, article.date, article.abstract, journal.journal, article.keyword 
-                FROM article LEFT JOIN journal ON article.journal_id = journal.journal_id
+                SELECT article.article_id, article.title, article.author, article.date, article.abstract, journal.journal, article.keyword,COUNT(CASE WHEN logs.type = 'read' THEN 1 END) AS total_reads,
+                COUNT(CASE WHEN logs.type = 'download' THEN 1 END) AS total_downloads 
+                FROM 
+                article 
+            LEFT JOIN 
+                journal ON article.journal_id = journal.journal_id 
+            LEFT JOIN 
+                logs ON article.article_id = logs.article_id 
+            LEFT JOIN 
+                files ON article.article_id = files.article_id
+            
                 WHERE ({date_conditions})
                 AND article.journal_id LIKE %s
                 AND
@@ -132,7 +165,9 @@ def get_articles_by_title():
                     OR {author_condition}
                     OR {id_condition}
                    
-                );
+                )
+                GROUP BY
+                article.article_id ;
             '''
             input_params = [f"%{input}%" for input in input_array]
             params = [f"%{date}%" for date in dates] + [f"%{journal}%"] + input_params + input_params + input_params + input_params
@@ -206,8 +241,8 @@ def get_reco_based_on_history(author_id):
             cursor.execute("""
                            SELECT 
                                 article.article_id, article.title, article.author, article.date, article.abstract, journal.journal, article.keyword,
-                                MAX(logs.date) AS last_read,
-                                COUNT(logs.article_id) AS total_interactions
+                                MAX(logs.date) AS last_read,  
+                                COUNT(logs.article_id) AS user_interactions
                             FROM article 
                                 LEFT JOIN logs ON article.article_id = logs.article_id
                                 LEFT JOIN journal ON article.journal_id = journal.journal_id
@@ -253,9 +288,10 @@ def get_reco_based_on_popularity():
     with db.cursor() as cursor:
         if period == 'monthly':
             cursor.execute("""
-                SELECT 
-                    SELECT article.article_id, article.title, article.author, article.date, article.abstract, journal.journal, article.keyword
-                    COUNT(logs.article_id) AS total_interactions
+                    SELECT article.article_id, article.title, article.author, article.date, article.abstract, journal.journal, article.keyword,
+                    COUNT(logs.article_id) AS total_interactions,
+                    COUNT(CASE WHEN logs.type = 'read' THEN 1 END) AS total_reads,
+                    COUNT(CASE WHEN logs.type = 'download' THEN 1 END) AS total_downloads 
                 FROM article 
                     LEFT JOIN logs ON article.article_id = logs.article_id
                     LEFT JOIN journal ON article.journal_id = journal.journal_id
@@ -268,7 +304,9 @@ def get_reco_based_on_popularity():
             cursor.execute("""
                 SELECT 
                     article.article_id, article.title, article.author, article.date, article.abstract, journal.journal, article.keyword,
-                    COUNT(logs.article_id) AS total_interactions
+                    COUNT(logs.article_id) AS total_interactions,
+                    COUNT(CASE WHEN logs.type = 'read' THEN 1 END) AS total_reads,
+                    COUNT(CASE WHEN logs.type = 'download' THEN 1 END) AS total_downloads 
                 FROM article 
                     LEFT JOIN logs ON article.article_id = logs.article_id
                     LEFT JOIN journal ON article.journal_id = journal.journal_id
