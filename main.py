@@ -19,18 +19,21 @@ db = pymysql.connect(
     connect_timeout=8800,
     cursorclass=pymysql.cursors.DictCursor
 )
-
+sql_query= 'SELECT article.article_id, article.title, article.author, article.date, article.abstract, journal.journal, article.keyword FROM article LEFT JOIN journal ON article.journal_id = journal.journal_id'
 db.ping(reconnect=True)
 cursor = db.cursor()
-cursor.execute('SELECT * FROM article')
+cursor.execute(sql_query)
 data = cursor.fetchall()
 
 
 id = [row['article_id'] for row in data]
-overviews_orig = [row['abstract'] for row in data]
+# overviews_orig = [row['abstract'] for row in data]
 overviews = [row['abstract'] for row in data]
 titles = [row['title'] for row in data] 
-titles_orig = [row['title'] for row in data] 
+# titles_orig = [row['title']  for row in data] 
+# author = [row['author']  for row in data] 
+# keyword = [row['keyword']  for row in data] 
+# date = [row['date']  for row in data] 
 
 
 # Preprocessing
@@ -78,9 +81,14 @@ def get_article_recommendations( article_id, overviews_similarity_matrix, titles
         for i in similar_articles:
             if i[1] < 0.25:
                 break
-            recommended_article_title = titles_orig[i[0]]
-            article_description = overviews_orig[i[0]]
-            recommended_articles.append({'title': recommended_article_title, 'article_id': id[i[0]], 'score': i[1]})
+            # recommended_article_title = titles_orig[i[0]]
+            # article_description = overviews_orig[i[0]]
+            # recommended_articles.append({'title': recommended_article_title, 'article_id': id[i[0]], 'score': i[1]})
+            
+            recommended_article = {key: data[i[0]][key] for key in data[i[0]]}
+            recommended_article['score'] = i[1]
+            recommended_articles.append(recommended_article)
+
 
         return recommended_articles
     else:
@@ -91,7 +99,7 @@ def get_article_recommendations( article_id, overviews_similarity_matrix, titles
 def get_articles():
     db.ping(reconnect=True)
     with db.cursor() as cursor:
-        cursor.execute('SELECT * FROM article limit 100')
+        cursor.execute(sql_query)
         data = cursor.fetchall()
 
     return jsonify(data)
@@ -106,17 +114,17 @@ def get_articles_by_title():
         db.ping(reconnect=True)
         with db.cursor() as cursor:
             input_array = [i.lower().strip() for i in input.split(",")]
-            date_conditions = ' OR '.join(['date LIKE %s' for _ in dates])
-            title_conditions = ' OR '.join('title LIKE %s' for i in input_array)
-            keyword_conditions = ' OR '.join('keyword LIKE %s' for i in input_array)
-            author_condition = ' OR '.join('author LIKE %s' for i in input_array)
-            id_condition = ' OR '.join('article_id LIKE %s' for i in input_array)
+            date_conditions = ' OR '.join(['article.date LIKE %s' for _ in dates])
+            title_conditions = ' OR '.join('article.title LIKE %s' for i in input_array)
+            keyword_conditions = ' OR '.join('article.keyword LIKE %s' for i in input_array)
+            author_condition = ' OR '.join('article.author LIKE %s' for i in input_array)
+            id_condition = ' OR '.join('article.article_id LIKE %s' for i in input_array)
             
             query = f'''
-                SELECT title, date, article_id, keyword, author
-                FROM article 
+                SELECT article.article_id, article.title, article.author, article.date, article.abstract, journal.journal, article.keyword 
+                FROM article LEFT JOIN journal ON article.journal_id = journal.journal_id
                 WHERE ({date_conditions})
-                AND journal_id LIKE %s
+                AND article.journal_id LIKE %s
                 AND
                 (
                     {title_conditions}
@@ -128,9 +136,7 @@ def get_articles_by_title():
             '''
             input_params = [f"%{input}%" for input in input_array]
             params = [f"%{date}%" for date in dates] + [f"%{journal}%"] + input_params + input_params + input_params + input_params
-            print(date_conditions)
-            print(params)
-            print(journal)
+       
             
             cursor.execute(query, params)
             result = cursor.fetchall()
@@ -179,7 +185,7 @@ def recommend_and_add_to_history():
     
     else:
         return jsonify({'error': recommendations})
-
+ 
 @app.route('/articles/logs/download',methods=['POST'])
 def insert_downloads():
         data = request.get_json()
@@ -199,12 +205,15 @@ def get_reco_based_on_history(author_id):
         with db.cursor() as cursor:
             cursor.execute("""
                            SELECT 
-                                article.article_id, article.title, MAX(logs.date) AS date,
+                                article.article_id, article.title, article.author, article.date, article.abstract, journal.journal, article.keyword,
+                                MAX(logs.date) AS last_read,
                                 COUNT(logs.article_id) AS total_interactions
-                            FROM article LEFT JOIN logs ON article.article_id = logs.article_id
+                            FROM article 
+                                LEFT JOIN logs ON article.article_id = logs.article_id
+                                LEFT JOIN journal ON article.journal_id = journal.journal_id
                             WHERE logs.author_id = %s
                             GROUP BY article.article_id
-                            ORDER BY date DESC
+                            ORDER BY last_read DESC
                             LIMIT 5;
                            """,(author_id))
             data = cursor.fetchall()
@@ -245,11 +254,11 @@ def get_reco_based_on_popularity():
         if period == 'monthly':
             cursor.execute("""
                 SELECT 
-                    article.article_id, 
-                    article.title, 
+                    SELECT article.article_id, article.title, article.author, article.date, article.abstract, journal.journal, article.keyword
                     COUNT(logs.article_id) AS total_interactions
                 FROM article 
-                LEFT JOIN logs ON article.article_id = logs.article_id
+                    LEFT JOIN logs ON article.article_id = logs.article_id
+                    LEFT JOIN journal ON article.journal_id = journal.journal_id
                 WHERE DATE_FORMAT(logs.date, '%Y-%m') = DATE_FORMAT(CURRENT_DATE(), '%Y-%m')
                 GROUP BY article.article_id
                 ORDER BY total_interactions DESC
@@ -258,11 +267,11 @@ def get_reco_based_on_popularity():
         elif period == 'weekly':
             cursor.execute("""
                 SELECT 
-                    article.article_id, 
-                    article.title, 
+                    article.article_id, article.title, article.author, article.date, article.abstract, journal.journal, article.keyword,
                     COUNT(logs.article_id) AS total_interactions
                 FROM article 
-                LEFT JOIN logs ON article.article_id = logs.article_id
+                    LEFT JOIN logs ON article.article_id = logs.article_id
+                    LEFT JOIN journal ON article.journal_id = journal.journal_id
                 WHERE WEEK(logs.date) = WEEK(CURRENT_DATE())
                 GROUP BY article.article_id
                 ORDER BY total_interactions DESC
