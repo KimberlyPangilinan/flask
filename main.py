@@ -182,7 +182,7 @@ def get_articles_by_title():
         return jsonify({'error': 'An error occurred while fetching article data.'}), 500
 
 @app.route('/articles/recommendations', methods=['POST'])
-def get_recommendations_based_on_current():
+def get_reco_based_on_selected():
     data = request.get_json()
     
     if 'article_id' not in data or 'author_id' not in data:
@@ -212,7 +212,7 @@ def get_recommendations_based_on_current():
         return jsonify({'error': recommendations})
 
 @app.route('/articles/recommendations/<int:author_id>', methods=['GET'])
-def recommendBasedHistory(author_id):
+def get_reco_based_on_history(author_id):
     try:
         db.ping(reconnect=True)
         with db.cursor() as cursor:
@@ -244,13 +244,44 @@ def recommendBasedHistory(author_id):
         return jsonify({'message': 'Error fetching recommendations based on read_history', 'error_details': str(e)}), 500
 
 @app.route('/articles/recommendations', methods=['GET'])
-def get_popular_articles():
+def get_reco_based_on_popularity():
     db.ping(reconnect=True)
+    data = request.get_json()
+    period = data.get('period', 'monthly') 
+  
     with db.cursor() as cursor:
-        cursor.execute('SELECT article.article_id, article.title, COUNT(read_history.article_id) AS number_of_reads FROM article LEFT JOIN read_history ON article.article_id = read_history.article_id WHERE MONTH(read_history.last_review) = MONTH(CURRENT_DATE()) AND YEAR(read_history.last_review) = YEAR(CURRENT_DATE()) GROUP BY article.article_id, article.title HAVING MAX(read_history.last_review) = MAX(read_history.last_review) ORDER BY number_of_reads DESC LIMIT 5;')
+        if period == 'monthly':
+            cursor.execute("""
+                SELECT 
+                    article.article_id, 
+                    article.title, 
+                    COUNT(read_history.article_id) AS number_of_reads
+                FROM article 
+                LEFT JOIN read_history ON article.article_id = read_history.article_id
+                WHERE DATE_FORMAT(read_history.last_review, '%Y-%m') = DATE_FORMAT(CURRENT_DATE(), '%Y-%m')
+                GROUP BY article.article_id
+                ORDER BY number_of_reads DESC
+                LIMIT 5;
+            """)
+        elif period == 'weekly':
+            cursor.execute("""
+                SELECT 
+                    article.article_id, 
+                    article.title, 
+                    COUNT(read_history.article_id) AS number_of_reads
+                FROM article 
+                LEFT JOIN read_history ON article.article_id = read_history.article_id
+                WHERE WEEK(read_history.last_review) = WEEK(CURRENT_DATE())
+                GROUP BY article.article_id
+                ORDER BY number_of_reads DESC
+                LIMIT 5;
+            """)
+        else:
+            return {"error": "Invalid period parameter. Use 'monthly' or 'weekly'."}, 400
+
         data = cursor.fetchall()
 
-    return {"monthly_recommendations": data}
+    return {"recommendations": data}
       
 
 
