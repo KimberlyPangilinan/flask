@@ -59,6 +59,18 @@ The Recommendation System API is designed to provide recommendations based on us
     - Description: Get personalized recommendations based on the user's read history.
 
 
+5. Get Recommendations based on popularity of user interactions
+    - Endpoint: `/articles/recommendations`
+    - Methods: `GET`
+    - Description: Get personalized recommendations based on the user's read history.
+    - Request Format: JSON
+
+    ```json
+    {
+        "period": "weekly" //weekly or monthly
+    }
+    ```
+
 
 ## Technologies Used
 
