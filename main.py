@@ -6,7 +6,7 @@ from nltk.corpus import stopwords
 import nltk
 import pymysql
 import numpy as np
-
+import datetime
 app = Flask(__name__)
 app.json.sort_keys = False
 CORS(app) 
@@ -130,10 +130,19 @@ def get_articles():
             
 @app.route('/articles/search', methods=['POST'])
 def get_articles_by_title():
+    def get_all_years_since_2010():
+        current_year = datetime.datetime.now().year
+        start_year = 2010
+
+        years = [str(year) for year in range(start_year, current_year + 1)]
+        return years
     data = request.get_json()
-    dates = data['dates']
-    journal = data['journal']
-    input = data['input']
+    dates = data.get('dates',get_all_years_since_2010())
+    journal = data.get('journal','')
+    input = data.get('input','')
+    if dates == []:
+        dates= get_all_years_since_2010()
+  
     try:
         db.ping(reconnect=True)
         with db.cursor() as cursor:
@@ -146,10 +155,10 @@ def get_articles_by_title():
             
             query = f'''
                 SELECT article.article_id, article.title, article.author, article.date, article.abstract, journal.journal, article.keyword,COUNT(CASE WHEN logs.type = 'read' THEN 1 END) AS total_reads,
-                COUNT(CASE WHEN logs.type = 'download' THEN 1 END) AS total_downloads 
+                COUNT(CASE WHEN logs.type = 'download' THEN 1 END) AS total_downloads, files.file_name
                 FROM 
                 article 
-            LEFT JOIN 
+                  LEFT JOIN 
                 journal ON article.journal_id = journal.journal_id 
             LEFT JOIN 
                 logs ON article.article_id = logs.article_id 
@@ -175,7 +184,8 @@ def get_articles_by_title():
             
             cursor.execute(query, params)
             result = cursor.fetchall()
-            
+            if len(result)==0:
+                return jsonify({"message": f"No results found for {input} . Try to use comma to separate keywords"})
             for i in range(len(result)): ## Adding contains to each result
                 result[i]["article_contains"]=[]
             
@@ -212,8 +222,8 @@ def recommend_and_add_to_history():
 
     if isinstance(recommendations, list):  # Check if recommendations is a list
         return jsonify({
-            'message': 'Successfully saved to read history.',
-            'related_articles': recommendations[1:],
+            'message': f"{article_id} is successfully inserted to read logs of user {author_id}",
+            'recommendations': recommendations[1:],
             'selected_article': recommendations[:1]
         })
     
@@ -224,13 +234,13 @@ def recommend_and_add_to_history():
 def insert_downloads():
         data = request.get_json()
         article_id = data['article_id']
-        author_id = data['author_id']
+        author_id = data.get('author_id', '')
         db.ping(reconnect=True)
         with db.cursor() as cursor:
             cursor.execute('INSERT INTO logs (article_id, author_id,type) VALUES (%s, %s, "download")', (article_id, author_id))
             db.commit()
             
-        return jsonify({'message': f"{article_id} is successfully inserted to downloads log"})
+        return jsonify({'message': f"{article_id} is successfully inserted to downloads log of user {author_id}"})
 
 @app.route('/articles/recommendations/<int:author_id>', methods=['GET'])
 def get_reco_based_on_history(author_id):
@@ -261,22 +271,22 @@ def get_reco_based_on_history(author_id):
                 if len(recommendations) < 1:
                     continue
                 temp.append(recommendations)
-                # print(temp)
-                # if len(temp) > 3:
-                #     break
-
+            # to remove redundant ids and ids in history
             for article_group in temp:
                 for article in article_group:
                     if article['article_id'] not in article_ids and not any(article['article_id'] == res['article_id'] for res in results):
                         results.append(article)
             
             results = sorted(results,  key=lambda x: x["score"], reverse= True)[:10]
-                    
+            if len(data)== 0:
+                return jsonify({'message':f"No history and personalized recommendations for user id {author_id}"})
 
-            return jsonify({'personalized_recommendations': results,'history':data,'user_id': author_id})
+            return jsonify({'message':f"Successfully fetched the history and personalized recommendations for user id {author_id}",
+                            'history':data,
+                            'recommendations': results})
 
     except pymysql.Error as e:
-        return jsonify({'message': 'Error fetching recommendations based on logs', 'error_details': str(e)}), 500
+        return jsonify({'message': f"Error fetching recommendations for user id {author_id} ", 'error_details': str(e)}), 500
 
 @app.route('/articles/recommendations', methods=['POST'])
 def get_reco_based_on_popularity():
@@ -319,7 +329,10 @@ def get_reco_based_on_popularity():
 
         data = cursor.fetchall()
 
-    return {"recommendations": data}
+    return  {
+                "message": f"Successfully fetched  most popular {period} recommendations",
+                "recommendations": data
+            }
 
 
 if __name__ == '__main__':
