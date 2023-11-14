@@ -194,13 +194,12 @@ def get_articles_by_title():
 @app.route('/articles/logs/read', methods=['POST'])
 def recommend_and_add_to_history():
     data = request.get_json()
-    
-    if 'article_id' not in data or 'author_id' not in data:
-        return jsonify({'message': 'Both article_id and author_id must be provided.'}), 400
-
     article_id = data['article_id']
-    author_id = data['author_id']
-    
+    author_id = data.get('author_id', '')
+     
+    if not article_id:
+        return jsonify({'message': 'Article_id must be provided.'}), 400
+
     try:
         db.ping(reconnect=True)
         with db.cursor() as cursor:
