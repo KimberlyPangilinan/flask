@@ -130,24 +130,21 @@ def get_articles():
             
 @app.route('/articles/search', methods=['POST'])
 def get_articles_by_title():
-    def get_all_years_since_2010():
-        current_year = datetime.datetime.now().year
-        start_year = 2010
 
-        years = [str(year) for year in range(start_year, current_year + 1)]
-        return years
     data = request.get_json()
-    dates = data.get('dates',get_all_years_since_2010())
+    dates = data.get('dates','')
     journal = data.get('journal','')
     input = data.get('input','')
-    if dates == []:
-        dates= get_all_years_since_2010()
-  
+ 
     try:
         db.ping(reconnect=True)
         with db.cursor() as cursor:
             input_array = [i.lower().strip() for i in input.split(",")]
-            date_conditions = ' OR '.join(['article.date LIKE %s' for _ in dates])
+            if not dates or dates == '' or dates == []:
+                date_conditions = ''  
+            else:
+                date_conditions = ' OR '.join(['article.date LIKE %s' for _ in dates])
+
             title_conditions = ' OR '.join('article.title LIKE %s' for i in input_array)
             keyword_conditions = ' OR '.join('article.keyword LIKE %s' for i in input_array)
             author_condition = ' OR '.join('article.author LIKE %s' for i in input_array)
@@ -165,7 +162,7 @@ def get_articles_by_title():
             LEFT JOIN 
                 files ON article.article_id = files.article_id
             
-                WHERE ({date_conditions})
+                WHERE 1=1 {date_conditions}
                 AND article.journal_id LIKE %s
                 AND
                 (
@@ -181,7 +178,7 @@ def get_articles_by_title():
             input_params = [f"%{input}%" for input in input_array]
             params = [f"%{date}%" for date in dates] + [f"%{journal}%"] + input_params + input_params + input_params + input_params
        
-            
+            print(params)
             cursor.execute(query, params)
             result = cursor.fetchall()
             if len(result)==0:
