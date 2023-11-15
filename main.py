@@ -123,7 +123,16 @@ def get_article_recommendations( article_id, overviews_similarity_matrix, titles
 def get_articles():
     db.ping(reconnect=True)
     with db.cursor() as cursor:
-        cursor.execute(sql_query)
+        sort_param = request.args.get('sort', default=None)
+        if sort_param == 'title':
+            sort = "ORDER BY title ASC"
+        elif sort_param == 'publication-date':
+            sort = "ORDER BY date ASC"
+        elif sort_param == 'recently-added':
+            sort = "ORDER BY date_added ASC"    
+        else:
+           sort = ""
+        cursor.execute(f"{sql_query}{sort}")
         data = cursor.fetchall()
 
     return jsonify(data)
