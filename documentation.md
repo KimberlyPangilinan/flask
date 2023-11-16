@@ -7,24 +7,28 @@ This documentation provides an overview of the endpoints and functionality of th
 The Recommendation System API is designed to provide recommendations based on user interactions and text analysis. It uses cosine similarity to recommend articles that are similar to those previously read by the user.
 
 ## Endpoints
-1. Get Articles
+1. Get Articles with filter and search
 
     - Endpoint: `/articles`
-    - Methods: `GET`
-    - Description: Get a list of articles.
-
-2. Search Articles
-
-    - Endpoint: `/articles/search`
     - Methods: `POST`
-    - Description: Search articles based on specified criteria.
-    - Parameters:
-        `dates` (list): `List of date ranges`.
-        `journal` (string): `Journal name`.
-        `input` (string): `Keywords for search`.
+    - Description: Get a list of articles.
+    - Payload: 
+     `dates` (list): `List of date ranges`. optional
+        `journal` (string): `Journal name`. optional 
+        `input` (string): `Keywords for search` optional
+ 
+    -  `/articles` - for getting all articles even without payload
+    -  `/articles/sort=title` - for sorting (choose value here: `title`, `recently-added`, ``popular`, `publication-date`)
+        ```json
+        {
+            // add this for filtering and search
+            "journal":"", //optional
+            "dates":[],  //optional
+            "input": "" //optional
+        }
+        ```
 
-
-3. Insert to read logs and Get Recommendations Based on Selected Article
+2. Insert to read logs and Get Recommendations Based on Selected Article
 
     - Endpoint: `/articles/logs/read`
     - Methods: `POST`
@@ -61,7 +65,7 @@ The Recommendation System API is designed to provide recommendations based on us
 
 5. Get Recommendations based on popularity of user interactions
     - Endpoint: `/articles/recommendations`
-    - Methods: `GET`
+    - Methods: `POST`
     - Description: Get personalized recommendations based on the user's read history.
     - Request Format: JSON
 

@@ -25,6 +25,7 @@ sql_query= """
                 article.title, 
                 article.author, 
                 article.date, 
+                article.date_added,
                 article.abstract, 
                 journal.journal, 
                 article.keyword, 
@@ -119,25 +120,28 @@ def get_article_recommendations( article_id, overviews_similarity_matrix, titles
         return ["Article ID not found in the mapping."]
 
 
-@app.route('/articles', methods=['GET'])
-def get_articles():
-    db.ping(reconnect=True)
-    with db.cursor() as cursor:
-        sort_param = request.args.get('sort', default=None)
-        if sort_param == 'title':
-            sort = "ORDER BY title ASC"
-        elif sort_param == 'publication-date':
-            sort = "ORDER BY date ASC"
-        elif sort_param == 'recently-added':
-            sort = "ORDER BY date_added ASC"    
-        else:
-           sort = ""
-        cursor.execute(f"{sql_query}{sort}")
-        data = cursor.fetchall()
+# @app.route('/articles', methods=['GET'])
+# def get_articles():
+#     db.ping(reconnect=True)
+#     with db.cursor() as cursor:
+#         sort_param = request.args.get('sort', default=None)
+#         if sort_param == 'title':
+#             sort = "ORDER BY title ASC"
+#         elif sort_param == 'publication-date':
+#             sort = "ORDER BY date ASC"
+#         elif sort_param == 'recently-added':
+#             sort = "ORDER BY date_added ASC"
+#         elif sort_param == 'popular':
+#             sort = "ORDER BY (total_reads + total_downloads) DESC"
+                
+#         else:
+#            sort = ""
+#         cursor.execute(f"{sql_query}{sort}")
+#         data = cursor.fetchall()
 
-    return jsonify(data)
+#     return jsonify(data)
             
-@app.route('/articles/search', methods=['POST'])
+@app.route('/articles', methods=['POST'])
 def get_articles_by_title():
 
     data = request.get_json()
@@ -148,6 +152,18 @@ def get_articles_by_title():
     try:
         db.ping(reconnect=True)
         with db.cursor() as cursor:
+            sort_param = request.args.get('sort', default=None)
+            if sort_param == 'title':
+                sort = "ORDER BY title ASC"
+            elif sort_param == 'publication-date':
+                sort = "ORDER BY date ASC"
+            elif sort_param == 'recently-added':
+                sort = "ORDER BY article.date_added DESC"
+            elif sort_param == 'popular':
+                sort = "ORDER BY (total_reads + total_downloads) DESC"
+                    
+            else:
+                sort = ""
             input_array = [i.lower().strip() for i in input.split(",")]
             if not dates or dates == '' or dates == []:
                 date_conditions = ''  
@@ -160,15 +176,15 @@ def get_articles_by_title():
             id_condition = ' OR '.join('article.article_id LIKE %s' for i in input_array)
             
             query = f'''
-                SELECT article.article_id, article.title, article.author, article.date, article.abstract, journal.journal, article.keyword,COUNT(CASE WHEN logs.type = 'read' THEN 1 END) AS total_reads,
+                SELECT article.article_id, article.title, article.author, article.date, article.abstract, journal.journal, article.date_added, article.keyword,COUNT(CASE WHEN logs.type = 'read' THEN 1 END) AS total_reads,
                 COUNT(CASE WHEN logs.type = 'download' THEN 1 END) AS total_downloads, files.file_name
                 FROM 
                 article 
                   LEFT JOIN 
                 journal ON article.journal_id = journal.journal_id 
-            LEFT JOIN 
+                LEFT JOIN 
                 logs ON article.article_id = logs.article_id 
-            LEFT JOIN 
+                LEFT JOIN 
                 files ON article.article_id = files.article_id
             
                 WHERE 1=1 {date_conditions}
@@ -182,13 +198,13 @@ def get_articles_by_title():
                    
                 )
                 GROUP BY
-                article.article_id ;
+                article.article_id 
             '''
             input_params = [f"%{input}%" for input in input_array]
             params = [f"%{date}%" for date in dates] + [f"%{journal}%"] + input_params + input_params + input_params + input_params
        
             print(params)
-            cursor.execute(query, params)
+            cursor.execute(f"{query}{sort}", params)
             result = cursor.fetchall()
             if len(result)==0:
                 return jsonify({"message": f"No results found for {input} . Try to use comma to separate keywords"})
