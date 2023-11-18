@@ -119,33 +119,12 @@ def get_article_recommendations( article_id, overviews_similarity_matrix, titles
     else:
         return ["Article ID not found in the mapping."]
 
-
-# @app.route('/articles', methods=['GET'])
-# def get_articles():
-#     db.ping(reconnect=True)
-#     with db.cursor() as cursor:
-#         sort_param = request.args.get('sort', default=None)
-#         if sort_param == 'title':
-#             sort = "ORDER BY title ASC"
-#         elif sort_param == 'publication-date':
-#             sort = "ORDER BY date ASC"
-#         elif sort_param == 'recently-added':
-#             sort = "ORDER BY date_added ASC"
-#         elif sort_param == 'popular':
-#             sort = "ORDER BY (total_reads + total_downloads) DESC"
-                
-#         else:
-#            sort = ""
-#         cursor.execute(f"{sql_query}{sort}")
-#         data = cursor.fetchall()
-
-#     return jsonify(data)
             
 @app.route('/articles', methods=['POST'])
 def get_articles_by_title():
 
     data = request.get_json()
-    dates = data.get('dates','')
+    dates = data.get('dates',[])
     journal = data.get('journal','')
     input = data.get('input','')
  
@@ -165,8 +144,8 @@ def get_articles_by_title():
             else:
                 sort = ""
             input_array = [i.lower().strip() for i in input.split(",")]
-            if not dates or dates == '' or dates == []:
-                date_conditions = ''  
+            if not dates or dates == []:
+                date_conditions = '1=1'  
             else:
                 date_conditions = ' OR '.join(['article.date LIKE %s' for _ in dates])
 
@@ -187,7 +166,7 @@ def get_articles_by_title():
                 LEFT JOIN 
                 files ON article.article_id = files.article_id
             
-                WHERE 1=1 {date_conditions}
+                WHERE  {date_conditions}
                 AND article.journal_id LIKE %s
                 AND
                 (
