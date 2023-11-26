@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Copy Hashed Text</title>
+</head>
+<body>
+    <h1>Copy Hashed Text</h1>
+
+    <div>
+        <label for="textInput">Enter Text:</label>
+        <input type="text" id="textInput" placeholder="Type something...">
+    </div>
+
+    <div>
+        <p id="displayText">Text to be displayed</p>
+        <button onclick="hashAndDisplay()">Hash and Dispflay</button>
+        <button onclick="copyHashedText()">Copy Hashed Text</button>
+    </div>
+
+    <script>
+        async function hashAndDisplay() {
+            const textInput = document.getElementById('textInput').value;
+            const hashedText = await sha256(textInput);
+            document.getElementById('displayText').innerText = `Original Text: ${textInput}\nHashed Text: ${hashedText}`;
+        }
+
+        async function copyHashedText() {
+            const textToCopy = await sha256(document.getElementById('textInput').value);
+
+            // Create a temporary textarea to manipulate clipboard data
+            const tempTextarea = document.createElement('textarea');
+            tempTextarea.value = textToCopy;
+            document.body.appendChild(tempTextarea);
+
+            // Select the text in the textarea
+            tempTextarea.select();
+            tempTextarea.setSelectionRange(0, 99999); /*For mobile devices*/
+
+            // Copy the selected text to the clipboard
+            document.execCommand('copy');
+
+            // Remove the temporary textarea
+            document.body.removeChild(tempTextarea);
+        }
+
+        async function sha256(str) {
+            const buffer = new TextEncoder().encode(str);
+            const hashArray = await crypto.subtle.digest('SHA-256', buffer);
+            const hashArrayHex = Array.from(new Uint8Array(hashArray)).map(byte => byte.toString(16).padStart(2, '0')).join('');
+            return hashArrayHex;
+        }
+    </script>
+</body>
+</html>
