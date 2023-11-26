@@ -4,3 +4,4 @@ nltk
 scikit-learn
 flask-cors
 pymysql
+tensorflow
