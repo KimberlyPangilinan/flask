@@ -57,14 +57,8 @@ data = cursor.fetchall()
 
 
 id = [row['article_id'] for row in data]
-# overviews_orig = [row['abstract'] for row in data]
 overviews = [row['abstract'] for row in data]
 titles = [row['title'] for row in data] 
-# titles_orig = [row['title']  for row in data] 
-# author = [row['author']  for row in data] 
-# keyword = [row['keyword']  for row in data] 
-# date = [row['date']  for row in data] 
-
 
 # Preprocessing
 nltk.download("stopwords")
@@ -152,8 +146,9 @@ def get_originality_score(input_title, input_abstract):
     cosine_sim_titles = cosine_similarity(vectorizer_titles, vectorizer.transform(titles[:-1]))
 
     combined_similarity = 0.4 * cosine_sim_overviews + 0.6 * cosine_sim_titles
-
+    
     similar_articles = sorted(enumerate(combined_similarity[0]), key=lambda x: x[1], reverse=True)
+    
     recommended_articles = []
 
     for i in similar_articles:
@@ -162,8 +157,12 @@ def get_originality_score(input_title, input_abstract):
 
         index = i[0]
         if index < len(titles) and index < len(overviews):
-            recommended_article = {key: data[index][key] for key in data[index]}
-            recommended_article['score'] = i[1]
+            recommended_article = {
+                'title': data[index]['title'],
+                'abstract': data[index]['abstract'],
+                'article_id': data[index]['article_id'],
+                'score': i[1]
+            }
             recommended_articles.append(recommended_article)
     
     if overviews:
@@ -239,6 +238,7 @@ def classify(input_data, model, label_encoder):
 
     ## Get the highest probability of classification
     output = np.argmax(output)
+    print(output )
 
     ## Get the journal name equivalent of the output of classification
     journal = label_encoder.inverse_transform([output])
@@ -246,9 +246,9 @@ def classify(input_data, model, label_encoder):
     ## replace _ with whitespace in the journal name
     journal = ' '.join(journal[0].split('_'))
     
-    return journal
+    return [journal, output]
 
-@app.route('/article/checker', methods=['GET'])
+@app.route('/article/checker', methods=['POST'])
 def check_originality():
     data = request.get_json()
     title = data['title']
@@ -257,11 +257,16 @@ def check_originality():
     similar_articles = get_originality_score(title, abstract)
 
     if isinstance(similar_articles, list): 
+        if len(similar_articles) > 0:
+            return jsonify({
+                'message': "Duplication warning",
+                'highest_simlarity':similar_articles[0]['score'],
+                'similar_articles': similar_articles
+            })  
         return jsonify({
-            'message': f"Duplication warning, highest similarity is {similar_articles[0]['score']}",
-            'similar_articles': similar_articles
-        })  
-        
+                'message': f"Your article is unique",
+                'similar_articles': similar_articles
+            })  
     return jsonify({'error':'error'})
     
     
@@ -285,7 +290,10 @@ def classify_article():
     result = classify(input_data, model, label_encoder)
 
    
-    return {'Classification Output': result}
+    return {
+            'journal_classification': f"{result[1]}",
+            'journal_name': result[0],
+            }
         
 @app.route('/articles', methods=['POST'])
 def get_articles_by_title():
