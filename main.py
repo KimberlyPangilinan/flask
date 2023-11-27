@@ -100,7 +100,7 @@ for n, title in enumerate(titles):
     for index, article_id in enumerate(id):
         article_id_to_index[article_id] = index
 def get_article_recommendations( article_id, overviews_similarity_matrix, titles_similarity_matrix):
-    combined_similarity = 0.2 * overviews_similarity_matrix + 0.8 * titles_similarity_matrix
+    combined_similarity = 0.4 * overviews_similarity_matrix + 0.6 * titles_similarity_matrix
     
     if article_id in article_id_to_index:
         index = article_id_to_index[article_id]
@@ -123,6 +123,54 @@ def get_article_recommendations( article_id, overviews_similarity_matrix, titles
         return recommended_articles
     else:
         return ["Article ID not found in the mapping."]
+
+def get_originality_score(input_title, input_abstract):
+    
+    # Combine the input title and abstract into a single string if needed
+    input_text = f"{input_title} {input_abstract}"
+   
+    input_title = input_title.lower().split(" ")
+    input_title = [''.join([letter for letter in word if letter.isalnum()]) for word in input_title]
+    input_title = [word for word in input_title if word not in stop_words]
+    input_title = ' '.join(input_title)
+
+
+    input_abstract = input_abstract.lower().split(" ")
+    input_abstract = [''.join([letter for letter in word if letter.isalnum()]) for word in input_abstract]
+    input_abstract = [word for word in input_abstract if word not in stop_words]
+    input_abstract = ' '.join(input_abstract)
+    
+    overviews.append(input_abstract)
+    titles.append(input_title)
+
+    vectorizer = CountVectorizer().fit(overviews + titles)
+
+    vectorizer_overviews = vectorizer.transform([overviews[-1]])
+    cosine_sim_overviews = cosine_similarity(vectorizer_overviews, vectorizer.transform(overviews[:-1]))
+
+    vectorizer_titles = vectorizer.transform([titles[-1]])
+    cosine_sim_titles = cosine_similarity(vectorizer_titles, vectorizer.transform(titles[:-1]))
+
+    combined_similarity = 0.4 * cosine_sim_overviews + 0.6 * cosine_sim_titles
+
+    similar_articles = sorted(enumerate(combined_similarity[0]), key=lambda x: x[1], reverse=True)
+    recommended_articles = []
+
+    for i in similar_articles:
+        if i[1] < 0.60:
+            break
+
+        index = i[0]
+        if index < len(titles) and index < len(overviews):
+            recommended_article = {key: data[index][key] for key in data[index]}
+            recommended_article['score'] = i[1]
+            recommended_articles.append(recommended_article)
+    
+    if overviews:
+        overviews.pop()
+    if titles:
+        titles.pop()
+    return recommended_articles
 
 def load_tokenizer(path):
     '''
@@ -199,7 +247,25 @@ def classify(input_data, model, label_encoder):
     journal = ' '.join(journal[0].split('_'))
     
     return journal
-       
+
+@app.route('/article/checker', methods=['GET'])
+def check_originality():
+    data = request.get_json()
+    title = data['title']
+    abstract = data['abstract']
+    
+    similar_articles = get_originality_score(title, abstract)
+
+    if isinstance(similar_articles, list): 
+        return jsonify({
+            'message': f"Duplication warning, highest similarity is {similar_articles[0]['score']}",
+            'similar_articles': similar_articles
+        })  
+        
+    return jsonify({'error':'error'})
+    
+    
+
 @app.route('/journal', methods=['POST'])
 def classify_article():
     data = request.get_json()
