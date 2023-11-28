@@ -289,7 +289,6 @@ model2 = load_model('classifier_model.h5')
 @app.route('/',methods=['GET'])
 def load_model2():
     try:
-        model = load_model('classifier_model.h5')
         return jsonify({'message':'model loaded'})
     except pymysql.Error as e:
         return jsonify({'error_details': str(e)}), 500
