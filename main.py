@@ -142,31 +142,41 @@ def get_originality_score(input_title, input_abstract):
     overviews.append(input_abstract)
     titles.append(input_title)
 
+    title_vectorizer = CountVectorizer().fit(titles)
+    overview_vectorizer = CountVectorizer().fit(overviews)
     vectorizer = CountVectorizer().fit(overviews + titles)
+    vectorizer_overviews = overview_vectorizer.transform([overviews[-1]])
+    cosine_sim_overviews = cosine_similarity(vectorizer_overviews, overview_vectorizer.transform(overviews[:-1]))
 
-    vectorizer_overviews = vectorizer.transform([overviews[-1]])
-    cosine_sim_overviews = cosine_similarity(vectorizer_overviews, vectorizer.transform(overviews[:-1]))
-
-    vectorizer_titles = vectorizer.transform([titles[-1]])
-    cosine_sim_titles = cosine_similarity(vectorizer_titles, vectorizer.transform(titles[:-1]))
-
-    combined_similarity = 0.4 * cosine_sim_overviews + 0.6 * cosine_sim_titles
     
+    vectorizer_titles = title_vectorizer.transform([titles[-1]])
+    cosine_sim_titles = cosine_similarity(vectorizer_titles, title_vectorizer.transform(titles[:-1]))
+
+    combined_similarity = (cosine_sim_overviews + cosine_sim_titles)/2
     similar_articles = sorted(enumerate(combined_similarity[0]), key=lambda x: x[1], reverse=True)
+    
+    similar_overviews= sorted(enumerate(cosine_sim_overviews[0]), key=lambda x: x[1], reverse=True)
+    similar_titles = sorted(enumerate(cosine_sim_titles[0]), key=lambda x: x[1], reverse=True)
+    
     
     recommended_articles = []
 
-    for i in similar_articles:
-        if i[1] < 0.50:
+    for (i,j,k) in zip(similar_titles, similar_overviews,similar_articles):
+        if j[1] < 0.50 and i[1] < 0.50:
             break
-
-        index = i[0]
+ 
+        index = k[0]
         if index < len(titles) and index < len(overviews):
             recommended_article = {
                 'title': data[index]['title'],
                 'abstract': data[index]['abstract'],
                 'article_id': data[index]['article_id'],
-                'score': i[1]
+                'score': {
+                    'title': i[1],
+                    'overview': j[1],
+                    'total':k[1]
+                }
+                
             }
             recommended_articles.append(recommended_article)
     
@@ -264,12 +274,12 @@ def check_originality():
     if isinstance(similar_articles, list): 
         if len(similar_articles) > 0:
             return jsonify({
-                'message': "Duplication warning",
-                'highest_simlarity':similar_articles[0]['score'],
+                'flagged': True,
+                'highest_simlarity':similar_articles[0]['score']['total'],
                 'similar_articles': similar_articles
             })  
         return jsonify({
-                'message': f"Your article is unique",
+                'flagged': False,
                 'similar_articles': similar_articles
             })  
     return jsonify({'error':'error'})
