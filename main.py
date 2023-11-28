@@ -1,3 +1,4 @@
+import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS 
 # import pandas as pd
@@ -11,19 +12,23 @@ import numpy as np
 import pickle
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.models import load_model
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 app.json.sort_keys = False
 CORS(app) 
 
 db = pymysql.connect(
-    host='mysql5049.site4now.net',
-    user='aa0682_movies',
-    password='Password1234.',
-    db='db_aa0682_movies',
+    host=os.getenv('DATABASE_HOST'),
+    user=os.getenv('DATABASE_USER'),
+    password=os.getenv('DATABASE_PASSWORD'),
+    db=os.getenv('DATABASE_DB'),
     connect_timeout=8800,
     cursorclass=pymysql.cursors.DictCursor
 )
+
 sql_query= """
             SELECT 
                 article.article_id, 
@@ -152,7 +157,7 @@ def get_originality_score(input_title, input_abstract):
     recommended_articles = []
 
     for i in similar_articles:
-        if i[1] < 0.60:
+        if i[1] < 0.50:
             break
 
         index = i[0]
@@ -291,7 +296,7 @@ def classify_article():
 
    
     return {
-            'journal_classification': f"{result[1]}",
+            'journal_classification': f"{result[1]+1}",
             'journal_name': result[0],
             }
         
