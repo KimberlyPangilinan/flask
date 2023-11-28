@@ -285,6 +285,14 @@ def check_originality():
     return jsonify({'error':'error'})
     
 model = load_model('models//classifier_v4//model.h5')
+model2 = load_model('classifier_model.h5')
+@app.route('/',methods=['GET'])
+def load_model2():
+    try:
+        model = load_model('classifier_model.h5')
+        return jsonify({'message':'model loaded'})
+    except pymysql.Error as e:
+        return jsonify({'error_details': str(e)}), 500
 
 @app.route('/journal', methods=['POST'])
 def classify_article():
