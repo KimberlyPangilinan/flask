@@ -5,3 +5,4 @@ scikit-learn
 flask-cors
 pymysql
 tensorflow
+python-dotenv
