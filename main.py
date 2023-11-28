@@ -181,15 +181,16 @@ def load_tokenizer(path):
         
     return tokenizer
 
-def load_label_encoder(path):
-    '''
-        loading label encoder for journal name processing
-    '''
 
-    with open(path, 'rb') as handle:
-        label_encoder = pickle.load(handle)
+# def load_label_encoder(path):
+#     '''
+#         loading label encoder for journal name processing
+#     '''
 
-    return label_encoder
+#     with open(path, 'rb') as handle:
+#         label_encoder = pickle.load(handle)
+
+#     return label_encoder
 
 def preprocess_abstract(abstract, tokenizer, label=None):
     '''
@@ -198,13 +199,13 @@ def preprocess_abstract(abstract, tokenizer, label=None):
         arguments:
             abstract = raw abstract in string
             tokenizer = tokenizer used by model for training
-            label = label of abstract (for testing purposes only)
+            label = label of abstrat (for testing purposes only)
 
-        The output is an array of integer ID for each word with a maximum length of 50.
-        Words are lowercased, alphanumeric characters are retained, and stopwords are removed.
-        If the number of words is less than 50, the remaining spaces will be filled with zeros.
-        If the number of words is greater than 50, the excess words will be truncated.
+        The output is an array of integer ID for each word with the same length of 250.
+        the words are arranged by order or apperance. only first words are retained. 
 
+        if words is less than 250, the remaining spaces will be filled with zeros
+        if words is greater than 250, the excess words will be ignored
     '''
     
     ## Text Preprocessing
@@ -213,16 +214,15 @@ def preprocess_abstract(abstract, tokenizer, label=None):
     abstract = [word for word in abstract if word not in stop_words]
     abstract = ' '.join(abstract)
     
-    ## Assign unique ID to each word in the abstract
+    ## Assign unique ID to each word in abstract
     sequences = tokenizer.texts_to_sequences([abstract])
 
-    ## Fill with zeros or truncate the array of word IDs. The maximum length is 50.
-    pad_trunc_sequences = pad_sequences(sequences, maxlen=20, padding='post', truncating='post')
+    ## Fill with zeros or Truncate array of word IDs. Max length is 250.
+    pad_trunc_sequences = pad_sequences(sequences, maxlen=300, padding='post', truncating='post')
 
     return pad_trunc_sequences, label
 
-
-def classify(input_data, model, label_encoder):
+def classify(input_data, model):
     '''
         Function to classify processed abstract 
         arguments: 
@@ -238,16 +238,14 @@ def classify(input_data, model, label_encoder):
 
     ## Get the highest probability of classification
     output = np.argmax(output)
-    print(output )
 
     ## Get the journal name equivalent of the output of classification
-    journal = label_encoder.inverse_transform([output])
+    journal = output + 1
 
     ## replace _ with whitespace in the journal name
-    journal = ' '.join(journal[0].split('_'))
+    # journal = ' '.join(journal[0].split('_'))
     
-    return [journal, output]
-
+    return journal
 @app.route('/article/checker', methods=['POST'])
 def check_originality():
     data = request.get_json()
@@ -277,22 +275,21 @@ def classify_article():
     abstract = data['abstract']
    
     ## Load tokenizer and encoder
-    tokenizer = load_tokenizer('models//classifier_v4//tokenizer.pickle')
-    label_encoder = load_label_encoder('models//classifier_v4//label_encoder.pickle')
+    tokenizer = load_tokenizer('models//classifier_v5//tokenizer.pickle')
+    # label_encoder = load_label_encoder('models//classifier_v4//label_encoder.pickle')
 
     ## load model
-    model = load_model('models//classifier_v4//model.h5')
+    model = load_model('models//classifier_v5//model.h5')
 
     ## Preprocess abstract
-    input_data, input_label = preprocess_abstract(abstract,tokenizer)
+    input_data= preprocess_abstract(abstract,tokenizer)
 
     ## classify abstract
-    result = classify(input_data, model, label_encoder)
+    result = classify(input_data, model)
 
    
     return {
-            'journal_classification': f"{result[1]}",
-            'journal_name': result[0],
+            'journal_classification': f"{result}"
             }
         
 @app.route('/articles', methods=['POST'])
