@@ -284,7 +284,7 @@ def check_originality():
             })  
     return jsonify({'error':'error'})
     
-    
+model = load_model('models//classifier_v4//model.h5')
 
 @app.route('/journal', methods=['POST'])
 def classify_article():
@@ -296,7 +296,7 @@ def classify_article():
     label_encoder = load_label_encoder('models//classifier_v4//label_encoder.pickle')
 
     ## load model
-    model = load_model('models//classifier_v4//model.h5')
+
 
     ## Preprocess abstract
     input_data, input_label = preprocess_abstract(abstract,tokenizer)
