@@ -13,6 +13,7 @@ import pickle
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.models import load_model
 from dotenv import load_dotenv
+from db_operations import SQL_MOST_POPULAR_ARTICLES, SQL_AUTHOR_ARTICLE_INTERACTIONS,SQL_AUTHOR_MONTHLY_INTERACTIONS,SQL_JOURNAL_MONTHLY_ENGAGEMENT, SQL_JOURNAL_TOTAL_ENGAGEMENT,SQL_MOST_DOWNLOADED_ARTICLES,SQL_MOST_POPULAR_ARTICLES_GAVEL,SQL_MOST_POPULAR_ARTICLES_LAMP,SQL_MOST_POPULAR_ARTICLES_STAR,SQL_MOST_VIEWED_ARTICLES, execute_query
 
 load_dotenv()
 
@@ -28,6 +29,9 @@ db = pymysql.connect(
     connect_timeout=8800,
     cursorclass=pymysql.cursors.DictCursor
 )
+
+result1 = execute_query(SQL_MOST_POPULAR_ARTICLES, db)
+print("Result 1:", result1)
 
 sql_query= """
             SELECT 
@@ -53,7 +57,6 @@ sql_query= """
             GROUP BY
                 article.article_id 
      
-
            """
 db.ping(reconnect=True)
 cursor = db.cursor()
@@ -295,16 +298,12 @@ def classify_article():
     tokenizer = load_tokenizer('models//classifier_v4//tokenizer.pickle')
     label_encoder = load_label_encoder('models//classifier_v4//label_encoder.pickle')
 
-    ## load model
-
-
     ## Preprocess abstract
     input_data, input_label = preprocess_abstract(abstract,tokenizer)
 
     ## classify abstract
     result = classify(input_data, model, label_encoder)
 
-   
     return {
             'journal_classification': f"{result[1]+1}",
             'journal_name': result[0],
@@ -483,7 +482,7 @@ def get_reco_based_on_history(author_id):
 def get_reco_based_on_popularity():
     db.ping(reconnect=True)
     data = request.get_json()
-    period = data.get('period', 'monthly') 
+    period = data.get('period', '') 
   
     with db.cursor() as cursor:
         if period == 'monthly':
@@ -511,6 +510,21 @@ def get_reco_based_on_popularity():
                     LEFT JOIN logs ON article.article_id = logs.article_id
                     LEFT JOIN journal ON article.journal_id = journal.journal_id
                 WHERE WEEK(logs.date) = WEEK(CURRENT_DATE())
+                GROUP BY article.article_id
+                ORDER BY total_interactions DESC
+                ;
+            """)
+        elif period == '':
+            cursor.execute("""
+                SELECT 
+                    article.article_id, article.title, article.author, article.date, article.abstract, journal.journal, article.keyword,
+                    COUNT(logs.article_id) AS total_interactions,
+                    COUNT(CASE WHEN logs.type = 'read' THEN 1 END) AS total_reads,
+                    COUNT(CASE WHEN logs.type = 'download' THEN 1 END) AS total_downloads 
+                FROM article 
+                    LEFT JOIN logs ON article.article_id = logs.article_id
+                    LEFT JOIN journal ON article.journal_id = journal.journal_id
+               
                 GROUP BY article.article_id
                 ORDER BY total_interactions DESC
                 ;
