@@ -483,6 +483,7 @@ def get_reco_based_on_popularity():
     db.ping(reconnect=True)
     data = request.get_json()
     period = data.get('period', '') 
+    category = data.get('category', 'total_interactions') 
   
     with db.cursor() as cursor:
         if period == 'monthly':
@@ -496,9 +497,9 @@ def get_reco_based_on_popularity():
                     LEFT JOIN journal ON article.journal_id = journal.journal_id
                 WHERE DATE_FORMAT(logs.date, '%Y-%m') = DATE_FORMAT(CURRENT_DATE(), '%Y-%m')
                 GROUP BY article.article_id
-                ORDER BY total_interactions DESC
+                ORDER BY {} DESC
                 LIMIT 5;
-            """)
+            """.format(category))
         elif period == 'weekly':
             cursor.execute("""
                 SELECT 
@@ -511,9 +512,9 @@ def get_reco_based_on_popularity():
                     LEFT JOIN journal ON article.journal_id = journal.journal_id
                 WHERE WEEK(logs.date) = WEEK(CURRENT_DATE())
                 GROUP BY article.article_id
-                ORDER BY total_interactions DESC
+                ORDER BY {} DESC
                 ;
-            """)
+            """.format(category))
         elif period == '':
             cursor.execute("""
                 SELECT 
@@ -526,18 +527,19 @@ def get_reco_based_on_popularity():
                     LEFT JOIN journal ON article.journal_id = journal.journal_id
                
                 GROUP BY article.article_id
-                ORDER BY total_interactions DESC
+                ORDER BY {} DESC
                 ;
-            """)
+            """.format(category))
         else:
             return {"error": "Invalid period parameter. Use 'monthly' or 'weekly'."}, 400
 
         data = cursor.fetchall()
 
     return  {
-                "message": f"Successfully fetched  most popular {period} recommendations",
+                "message": f"Successfully fetched  most popular {period} recommendations based on {category}",
                 "recommendations": data
             }
+
 
 
 if __name__ == '__main__':
