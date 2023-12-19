@@ -30,8 +30,6 @@ db = pymysql.connect(
     cursorclass=pymysql.cursors.DictCursor
 )
 
-result1 = execute_query(SQL_MOST_POPULAR_ARTICLES, db)
-print("Result 1:", result1)
 
 sql_query= """
 SELECT 
@@ -408,6 +406,38 @@ def recommend_and_add_to_history():
 
     try:
         db.ping(reconnect=True)
+        cursor = db.cursor()
+        cursor.execute("""
+            SELECT 
+                article.article_id, 
+                article.title, 
+                article.author,
+                article.date, 
+                article.date_added,
+                article.abstract, 
+                journal.journal, 
+                article.keyword, 
+                files.file_name, 
+                COUNT(CASE WHEN logs.type = 'read' THEN 1 END) AS total_reads,
+                COUNT(CASE WHEN logs.type = 'download' THEN 1 END) AS total_downloads,
+                GROUP_CONCAT(DISTINCT CONCAT(contributor.firstname, ' ', contributor.lastname, '-', contributor.orcid) SEPARATOR ', ') AS contributors
+            FROM 
+                article 
+            LEFT JOIN 
+                journal ON article.journal_id = journal.journal_id 
+            LEFT JOIN 
+                logs ON article.article_id = logs.article_id 
+            LEFT JOIN 
+                files ON article.article_id = files.article_id
+            LEFT JOIN 
+                contributor ON article.article_id = contributor.article_id
+            WHERE article.article_id=%s
+            GROUP BY
+                article.article_id;
+        """, (article_id,))
+        data = cursor.fetchall()
+        print(data,"data")
+        db.ping(reconnect=True)
         with db.cursor() as cursor:
             cursor.execute('INSERT INTO logs (article_id, author_id) VALUES (%s, %s)', (article_id, author_id))
             db.commit()
@@ -420,7 +450,7 @@ def recommend_and_add_to_history():
         return jsonify({
             'message': f"{article_id} is successfully inserted to read logs of user {author_id}",
             'recommendations': recommendations[1:],
-            'selected_article': recommendations[:1]
+            'selected_article': data
         })
     
     else:
