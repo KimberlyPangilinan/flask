@@ -545,53 +545,46 @@ def get_reco_based_on_popularity():
     with db.cursor() as cursor:
         if period == 'monthly':
             cursor.execute("""
-                    SELECT article.article_id, article.title, article.author, article.date, article.abstract, journal.journal, article.keyword,
+                   SELECT article.article_id, article.title, article.author, article.date, article.abstract, journal.journal, article.keyword,
                     COUNT(logs.article_id) AS total_interactions,
                     COUNT(CASE WHEN logs.type = 'read' THEN 1 END) AS total_reads,
                     COUNT(CASE WHEN logs.type = 'download' THEN 1 END) AS total_downloads,
-                    GROUP_CONCAT(DISTINCT CONCAT(contributor.firstname, ' ', contributor.lastname, '->', contributor.orcid) SEPARATOR ', ') AS contributors
+					c.contributors
 
                 FROM article 
                     LEFT JOIN logs ON article.article_id = logs.article_id
                     LEFT JOIN journal ON article.journal_id = journal.journal_id
-                    LEFT JOIN contributor ON article.article_id = contributor.article_id
+                    LEFT JOIN(
+                        SELECT 
+                        	article_id, GROUP_CONCAT(DISTINCT CONCAT(firstname,' ',lastname,'->',orcid) SEPARATOR ', ') AS contributors
+         				FROM contributor GROUP BY article_id) AS c ON article.article_id = c.article_id
                 WHERE DATE_FORMAT(logs.date, '%Y-%m') = DATE_FORMAT(CURRENT_DATE(), '%Y-%m')
                 GROUP BY article.article_id
                 ORDER BY {} DESC
                 LIMIT 5;
             """.format(category))
-        elif period == 'weekly':
-            cursor.execute("""
-                SELECT 
-                    article.article_id, article.title, article.author, article.date, article.abstract, journal.journal, article.keyword,
-                    COUNT(logs.article_id) AS total_interactions,
-                    COUNT(CASE WHEN logs.type = 'read' THEN 1 END) AS total_reads,
-                    COUNT(CASE WHEN logs.type = 'download' THEN 1 END) AS total_downloads 
-                FROM article 
-                    LEFT JOIN logs ON article.article_id = logs.article_id
-                    LEFT JOIN journal ON article.journal_id = journal.journal_id
-                WHERE WEEK(logs.date) = WEEK(CURRENT_DATE())
-                GROUP BY article.article_id
-                ORDER BY {} DESC
-                ;
-            """.format(category))
+
         elif period == '':
             cursor.execute("""
-                SELECT 
-                    article.article_id, article.title, article.author, article.date, article.abstract, journal.journal, article.keyword,
+                   SELECT article.article_id, article.title, article.author, article.date, article.abstract, journal.journal, article.keyword,
                     COUNT(logs.article_id) AS total_interactions,
                     COUNT(CASE WHEN logs.type = 'read' THEN 1 END) AS total_reads,
-                    COUNT(CASE WHEN logs.type = 'download' THEN 1 END) AS total_downloads 
+                    COUNT(CASE WHEN logs.type = 'download' THEN 1 END) AS total_downloads,
+					c.contributors
+
                 FROM article 
                     LEFT JOIN logs ON article.article_id = logs.article_id
                     LEFT JOIN journal ON article.journal_id = journal.journal_id
-               
+                    LEFT JOIN(
+                        SELECT 
+                        	article_id, GROUP_CONCAT(DISTINCT CONCAT(firstname,' ',lastname,'->',orcid) SEPARATOR ', ') AS contributors
+         				FROM contributor GROUP BY article_id) AS c ON article.article_id = c.article_id
                 GROUP BY article.article_id
                 ORDER BY {} DESC
-                ;
+                LIMIT 5;
             """.format(category))
         else:
-            return {"error": "Invalid period parameter. Use 'monthly' or 'weekly'."}, 400
+            return {"error": "Invalid period parameter. Use 'monthly' or ''."}, 400
 
         data = cursor.fetchall()
 
