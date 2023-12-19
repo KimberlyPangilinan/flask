@@ -418,9 +418,9 @@ def recommend_and_add_to_history():
                 journal.journal, 
                 article.keyword, 
                 files.file_name, 
-                COUNT(CASE WHEN logs.type = 'read' THEN 1 END) AS total_reads,
-                COUNT(CASE WHEN logs.type = 'download' THEN 1 END) AS total_downloads,
-                GROUP_CONCAT(DISTINCT CONCAT(contributor.firstname, ' ', contributor.lastname, '-', contributor.orcid) SEPARATOR ', ') AS contributors
+                SUM(CASE WHEN logs.type = 'read' THEN 1 ELSE 0 END) AS total_reads,
+                SUM(CASE WHEN logs.type = 'download' THEN 1 ELSE 0 END) AS total_downloads,
+                GROUP_CONCAT(DISTINCT CONCAT(contributor.firstname, ' ', contributor.lastname, '->', contributor.orcid) SEPARATOR ', ') AS contributors
             FROM 
                 article 
             LEFT JOIN 
