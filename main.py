@@ -350,6 +350,7 @@ def get_articles_by_title():
             query = f'''
                 SELECT article.article_id, article.title, article.author, article.date, article.abstract, journal.journal, article.date_added, article.keyword,COUNT(CASE WHEN logs.type = 'read' THEN 1 END) AS total_reads,
                 COUNT(CASE WHEN logs.type = 'download' THEN 1 END) AS total_downloads, files.file_name, GROUP_CONCAT(DISTINCT CONCAT(contributor.firstname, ' ', contributor.lastname, '-', contributor.orcid) SEPARATOR ', ') AS contributors
+                FROM 
                 article 
                   LEFT JOIN 
                 journal ON article.journal_id = journal.journal_id 
