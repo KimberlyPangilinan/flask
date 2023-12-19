@@ -37,7 +37,7 @@ sql_query= """
             SELECT 
                 article.article_id, 
                 article.title, 
-                article.author, 
+                article.author,
                 article.date, 
                 article.date_added,
                 article.abstract, 
@@ -45,7 +45,8 @@ sql_query= """
                 article.keyword, 
                 files.file_name, 
                 COUNT(CASE WHEN logs.type = 'read' THEN 1 END) AS total_reads,
-                COUNT(CASE WHEN logs.type = 'download' THEN 1 END) AS total_downloads
+                COUNT(CASE WHEN logs.type = 'download' THEN 1 END) AS total_downloads,
+                GROUP_CONCAT(CONCAT(contributor.firstname, ' ', contributor.lastname, '-', contributor.orcid) SEPARATOR ', ') AS contributors
             FROM 
                 article 
             LEFT JOIN 
@@ -54,9 +55,11 @@ sql_query= """
                 logs ON article.article_id = logs.article_id 
             LEFT JOIN 
                 files ON article.article_id = files.article_id
+            LEFT JOIN 
+                contributor ON article.article_id = contributor.article_id
+            
             GROUP BY
                 article.article_id 
-     
            """
 db.ping(reconnect=True)
 cursor = db.cursor()
@@ -345,7 +348,7 @@ def get_articles_by_title():
             
             query = f'''
                 SELECT article.article_id, article.title, article.author, article.date, article.abstract, journal.journal, article.date_added, article.keyword,COUNT(CASE WHEN logs.type = 'read' THEN 1 END) AS total_reads,
-                COUNT(CASE WHEN logs.type = 'download' THEN 1 END) AS total_downloads, files.file_name
+                COUNT(CASE WHEN logs.type = 'download' THEN 1 END) AS total_downloads, files.file_name,GROUP_CONCAT(CONCAT(contributor.firstname, ' ', contributor.lastname, '-', contributor.orcid) SEPARATOR ', ') AS contributors
                 FROM 
                 article 
                   LEFT JOIN 
@@ -354,6 +357,8 @@ def get_articles_by_title():
                 logs ON article.article_id = logs.article_id 
                 LEFT JOIN 
                 files ON article.article_id = files.article_id
+                LEFT JOIN 
+                    contributor ON article.article_id = contributor.article_id
             
                 WHERE  {date_conditions}
                 AND article.journal_id LIKE %s
@@ -441,10 +446,12 @@ def get_reco_based_on_history(author_id):
                            SELECT 
                                 article.article_id, article.title, article.author, article.date, article.abstract, journal.journal, article.keyword,
                                 MAX(logs.date) AS last_read,  
-                                COUNT(logs.article_id) AS user_interactions
+                                COUNT(logs.article_id) AS user_interactions,GROUP_CONCAT(CONCAT(contributor.firstname, ' ', contributor.lastname, '-', contributor.orcid) SEPARATOR ', ') AS contributors
+
                             FROM article 
                                 LEFT JOIN logs ON article.article_id = logs.article_id
                                 LEFT JOIN journal ON article.journal_id = journal.journal_id
+                                LEFT JOIN contributor ON article.article_id = contributor.article_id
                             WHERE logs.author_id = %s
                             GROUP BY article.article_id
                             ORDER BY last_read DESC
@@ -491,10 +498,13 @@ def get_reco_based_on_popularity():
                     SELECT article.article_id, article.title, article.author, article.date, article.abstract, journal.journal, article.keyword,
                     COUNT(logs.article_id) AS total_interactions,
                     COUNT(CASE WHEN logs.type = 'read' THEN 1 END) AS total_reads,
-                    COUNT(CASE WHEN logs.type = 'download' THEN 1 END) AS total_downloads 
+                    COUNT(CASE WHEN logs.type = 'download' THEN 1 END) AS total_downloads,
+                    GROUP_CONCAT(CONCAT(contributor.firstname, ' ', contributor.lastname, '-', contributor.orcid) SEPARATOR ', ') AS contributors
+
                 FROM article 
                     LEFT JOIN logs ON article.article_id = logs.article_id
                     LEFT JOIN journal ON article.journal_id = journal.journal_id
+                    LEFT JOIN contributor ON article.article_id = contributor.article_id
                 WHERE DATE_FORMAT(logs.date, '%Y-%m') = DATE_FORMAT(CURRENT_DATE(), '%Y-%m')
                 GROUP BY article.article_id
                 ORDER BY {} DESC
