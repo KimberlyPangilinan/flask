@@ -44,7 +44,7 @@ SELECT
     files.file_name, 
     COUNT(DISTINCT CASE WHEN logs.type = 'read' THEN 1 END) AS total_reads,
     COUNT(DISTINCT CASE WHEN logs.type = 'download' THEN 1 END) AS total_downloads,
-    GROUP_CONCAT(DISTINCT CONCAT(contributor.firstname, ' ', contributor.lastname, '-', contributor.orcid) SEPARATOR ', ') AS contributors
+    GROUP_CONCAT(DISTINCT CONCAT(contributor.firstname, ' ', contributor.lastname, '->', contributor.orcid) SEPARATOR ', ') AS contributors
 FROM 
     article 
 LEFT JOIN 
@@ -347,7 +347,7 @@ def get_articles_by_title():
             
             query = f'''
                 SELECT article.article_id, article.title, article.author, article.date, article.abstract, journal.journal, article.date_added, article.keyword,COUNT(CASE WHEN logs.type = 'read' THEN 1 END) AS total_reads,
-                COUNT(CASE WHEN logs.type = 'download' THEN 1 END) AS total_downloads, files.file_name, GROUP_CONCAT(DISTINCT CONCAT(contributor.firstname, ' ', contributor.lastname, '-', contributor.orcid) SEPARATOR ', ') AS contributors
+                COUNT(CASE WHEN logs.type = 'download' THEN 1 END) AS total_downloads, files.file_name, GROUP_CONCAT(DISTINCT CONCAT(contributor.firstname, ' ', contributor.lastname, '->', contributor.orcid) SEPARATOR ', ') AS contributors
                 FROM 
                 article 
                   LEFT JOIN 
@@ -408,32 +408,51 @@ def recommend_and_add_to_history():
         db.ping(reconnect=True)
         cursor = db.cursor()
         cursor.execute("""
-            SELECT 
-                article.article_id, 
-                article.title, 
+            SELECT
+                article.article_id,
+                article.title,
                 article.author,
-                article.date, 
+                article.date,
                 article.date_added,
-                article.abstract, 
-                journal.journal, 
-                article.keyword, 
-                files.file_name, 
-                SUM(CASE WHEN logs.type = 'read' THEN 1 ELSE 0 END) AS total_reads,
-                SUM(CASE WHEN logs.type = 'download' THEN 1 ELSE 0 END) AS total_downloads,
-                GROUP_CONCAT(DISTINCT CONCAT(contributor.firstname, ' ', contributor.lastname, '->', contributor.orcid) SEPARATOR ', ') AS contributors
-            FROM 
-                article 
-            LEFT JOIN 
-                journal ON article.journal_id = journal.journal_id 
-            LEFT JOIN 
-                logs ON article.article_id = logs.article_id 
-            LEFT JOIN 
-                files ON article.article_id = files.article_id
-            LEFT JOIN 
-                contributor ON article.article_id = contributor.article_id
-            WHERE article.article_id=%s
+                article.abstract,
+                journal.journal,
+                article.keyword,
+                files.file_name,
+                SUM(
+                    CASE WHEN LOGS.type = 'read' THEN 1 ELSE 0
+                END
+            ) AS total_reads,
+            SUM(
+                CASE WHEN LOGS.type = 'download' THEN 1 ELSE 0
+            END
+            ) AS total_downloads,
+            c.contributors
+            FROM
+                article
+            LEFT JOIN journal ON article.journal_id = journal.journal_id
+            LEFT JOIN LOGS ON article.article_id = LOGS.article_id
+            LEFT JOIN files ON article.article_id = files.article_id
+            LEFT JOIN(
+                SELECT article_id,
+                    GROUP_CONCAT(
+                        DISTINCT CONCAT(firstname,' ',lastname,'->',orcid) SEPARATOR ', ') AS contributors
+                FROM
+                    contributor
+                GROUP BY
+                    article_id
+            ) AS c
+            ON
+                article.article_id = c.article_id
+            WHERE
+                article.article_id = %s
             GROUP BY
-                article.article_id;
+                journal.journal_id,
+                journal.journal,
+                article.article_id
+            ORDER BY
+                total_downloads
+            DESC
+            LIMIT 10;
         """, (article_id,))
         data = cursor.fetchall()
         print(data,"data")
@@ -477,7 +496,7 @@ def get_reco_based_on_history(author_id):
                            SELECT 
                                 article.article_id, article.title, article.author, article.date, article.abstract, journal.journal, article.keyword,
                                 MAX(logs.date) AS last_read,  
-                                COUNT(logs.article_id) AS user_interactions, GROUP_CONCAT(DISTINCT CONCAT(contributor.firstname, ' ', contributor.lastname, '-', contributor.orcid) SEPARATOR ', ') AS contributors
+                                COUNT(logs.article_id) AS user_interactions, GROUP_CONCAT(DISTINCT CONCAT(contributor.firstname, ' ', contributor.lastname, '->', contributor.orcid) SEPARATOR ', ') AS contributors
 
                             FROM article 
                                 LEFT JOIN logs ON article.article_id = logs.article_id
@@ -530,7 +549,7 @@ def get_reco_based_on_popularity():
                     COUNT(logs.article_id) AS total_interactions,
                     COUNT(CASE WHEN logs.type = 'read' THEN 1 END) AS total_reads,
                     COUNT(CASE WHEN logs.type = 'download' THEN 1 END) AS total_downloads,
-                    GROUP_CONCAT(DISTINCT CONCAT(contributor.firstname, ' ', contributor.lastname, ' ', contributor.orcid) SEPARATOR ', ') AS contributors
+                    GROUP_CONCAT(DISTINCT CONCAT(contributor.firstname, ' ', contributor.lastname, '->', contributor.orcid) SEPARATOR ', ') AS contributors
 
                 FROM article 
                     LEFT JOIN logs ON article.article_id = logs.article_id
