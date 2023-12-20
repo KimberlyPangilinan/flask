@@ -426,7 +426,7 @@ def recommend_and_add_to_history():
                 CASE WHEN LOGS.type = 'download' THEN 1 ELSE 0
             END
             ) AS total_downloads,
-            c.contributors
+            c.contributors, c.contributors_A
             FROM
                 article
             LEFT JOIN journal ON article.journal_id = journal.journal_id
@@ -435,7 +435,9 @@ def recommend_and_add_to_history():
             LEFT JOIN(
                 SELECT article_id,
                     GROUP_CONCAT(
-                        DISTINCT CONCAT(lastname,' ',SUBSTRING(firstname, 1, 1), '.','->',orcid) SEPARATOR ', ') AS contributors
+                        DISTINCT CONCAT(lastname,', ',SUBSTRING(firstname, 1, 1), '.','->',orcid) SEPARATOR ' and ') AS contributors,
+                    GROUP_CONCAT(
+                        DISTINCT CONCAT(lastname,', ',firstname,'->',orcid) SEPARATOR ' and ') AS contributors_A
                 FROM
                     contributor
                 GROUP BY
