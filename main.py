@@ -435,7 +435,7 @@ def recommend_and_add_to_history():
             LEFT JOIN(
                 SELECT article_id,
                     GROUP_CONCAT(
-                        DISTINCT CONCAT(firstname,' ',lastname,'->',orcid) SEPARATOR ', ') AS contributors
+                        DISTINCT CONCAT(lastname,' ',SUBSTRING(firstname, 1, 1), '.','->',orcid) SEPARATOR ', ') AS contributors
                 FROM
                     contributor
                 GROUP BY
