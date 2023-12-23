@@ -36,7 +36,7 @@ SELECT
     article.article_id, 
     article.title, 
     article.author,
-    article.date, 
+    article.publication_date, 
     article.date_added,
     article.abstract, 
     journal.journal, 
@@ -338,7 +338,7 @@ def get_articles_by_title():
             if not dates or dates == []:
                 date_conditions = '1=1'  
             else:
-                date_conditions = ' OR '.join(['article.date LIKE %s' for _ in dates])
+                date_conditions = ' OR '.join(['article.publication_date LIKE %s' for _ in dates])
 
             title_conditions = ' OR '.join('article.title LIKE %s' for i in input_array)
             keyword_conditions = ' OR '.join('article.keyword LIKE %s' for i in input_array)
@@ -346,7 +346,7 @@ def get_articles_by_title():
             id_condition = ' OR '.join('article.article_id LIKE %s' for i in input_array)
             
             query = f'''
-                SELECT article.article_id, article.title, article.author, article.date, article.abstract, journal.journal, article.date_added, article.keyword,COUNT(CASE WHEN logs.type = 'read' THEN 1 END) AS total_reads,
+                SELECT article.article_id, article.title, article.author, article.publication_date, article.abstract, journal.journal, article.date_added, article.keyword,COUNT(CASE WHEN logs.type = 'read' THEN 1 END) AS total_reads,
                 COUNT(CASE WHEN logs.type = 'download' THEN 1 END) AS total_downloads, article_files.file_name, GROUP_CONCAT(DISTINCT CONCAT(contributors.firstname, ' ', contributors.lastname, '->', contributors.orcid) SEPARATOR ', ') AS contributors
                 FROM 
                 article 
@@ -412,7 +412,7 @@ def recommend_and_add_to_history():
                 article.article_id,
                 article.title,
                 article.author,
-                article.date,
+                article.publication_date,
                 article.date_added,
                 article.abstract,
                 journal.journal,
@@ -502,7 +502,7 @@ def get_reco_based_on_history(author_id):
         with db.cursor() as cursor:
             cursor.execute("""
                            SELECT 
-                                article.article_id, article.title, article.author, article.date, article.abstract, journal.journal, article.keyword,
+                                article.article_id, article.title, article.author, article.publication_date, article.abstract, journal.journal, article.keyword,
                                 MAX(logs.date) AS last_read,  
                                 COUNT(logs.article_id) AS user_interactions, GROUP_CONCAT(DISTINCT CONCAT(contributors.firstname, ' ', contributors.lastname, '->', contributors.orcid) SEPARATOR ', ') AS contributors
 
@@ -553,7 +553,7 @@ def get_reco_based_on_popularity():
     with db.cursor() as cursor:
         if period == 'monthly':
             cursor.execute("""
-                   SELECT article.article_id, article.title, article.author, article.date, article.abstract, journal.journal, article.keyword,
+                   SELECT article.article_id, article.title, article.author, article.publication_date, article.abstract, journal.journal, article.keyword,
                     COUNT(logs.article_id) AS total_interactions,
                     COUNT(CASE WHEN logs.type = 'read' THEN 1 END) AS total_reads,
                     COUNT(CASE WHEN logs.type = 'download' THEN 1 END) AS total_downloads,
@@ -574,7 +574,7 @@ def get_reco_based_on_popularity():
 
         elif period == '':
             cursor.execute("""
-                   SELECT article.article_id, article.title, article.author, article.date, article.abstract, journal.journal, article.keyword,
+                   SELECT article.article_id, article.title, article.author, article.publication_date, article.abstract, journal.journal, article.keyword,
                     COUNT(logs.article_id) AS total_interactions,
                     COUNT(CASE WHEN logs.type = 'read' THEN 1 END) AS total_reads,
                     COUNT(CASE WHEN logs.type = 'download' THEN 1 END) AS total_downloads,
