@@ -103,41 +103,53 @@ def recommend_and_add_to_history():
         db.ping(reconnect=True)
         cursor = db.cursor()
         cursor.execute("""
-          SELECT
-    article.*,
-    article_files.file_name,
-    c.contributors,
-    c.contributors_A,
-    c.contributors_B
-FROM
-    article
-LEFT JOIN journal ON article.journal_id = journal.journal_id
-LEFT JOIN article_files ON article.article_id = article_files.article_id
-LEFT JOIN (
-    SELECT
-        article_id,
-        GROUP_CONCAT(
-            DISTINCT CONCAT(lastname, ', ', SUBSTRING(firstname, 1, 1), '.', orcid) SEPARATOR ' ; '
-        ) AS contributors,
-        GROUP_CONCAT(
-            DISTINCT CONCAT(lastname, ', ', firstname) SEPARATOR ' ; '
-        ) AS contributors_A,
-        GROUP_CONCAT(
-            DISTINCT CONCAT(lastname, ', ', SUBSTRING(firstname, 1, 1), '.') SEPARATOR ' ; '
-        ) AS contributors_B
-    FROM
-        contributors
-    GROUP BY
-        article_id
-) AS c ON article.article_id = c.article_id
-WHERE
-    article.article_id = %s
-GROUP BY
-    article.article_id,  
-    journal.journal_id,
-    journal.journal;
-
+            SELECT
+                article.*,
+                journal.journal,
+                article.keyword,
+                article_files.file_name,
+                SUM(
+                    CASE WHEN LOGS.type = 'read' THEN 1 ELSE 0
+                END
+            ) AS total_reads,
+            SUM(
+                CASE WHEN LOGS.type = 'download' THEN 1 ELSE 0
+            END
+            ) AS total_downloads,
+            c.contributors, c.contributors_A, c.contributors_B
+            FROM
+                article
+            LEFT JOIN journal ON article.journal_id = journal.journal_id
+            LEFT JOIN LOGS ON article.article_id = LOGS.article_id
+            LEFT JOIN article_files ON article.article_id = article_files.article_id
+            LEFT JOIN(
+                SELECT article_id,
+                    GROUP_CONCAT(
+                        DISTINCT CONCAT(lastname, ', ', SUBSTRING(firstname, 1, 1), '.', orcid) SEPARATOR ' ; '
+                    ) AS contributors,
+                    GROUP_CONCAT(
+                        DISTINCT CONCAT(lastname, ', ', firstname) SEPARATOR ' ; '
+                    ) AS contributors_A,
+                    GROUP_CONCAT(
+                        DISTINCT CONCAT(lastname, ', ', SUBSTRING(firstname, 1, 1), '.') SEPARATOR ' ; '
+                    ) AS contributors_B
+                    
+                FROM
+                    contributors
+                GROUP BY
+                    article_id
+            ) AS c
+            ON
+                article.article_id = c.article_id
+            WHERE
+                article.article_id = %s
+            GROUP BY
+                journal.journal_id,
+                journal.journal,
+                article.article_id;
         """, (article_id,))
+       
+ 
         data = cursor.fetchall()
         print(data,"data")
         db.ping(reconnect=True)
