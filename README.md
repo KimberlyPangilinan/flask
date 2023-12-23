@@ -1,6 +1,16 @@
-# flask
-A minimal Flask web application.
+# Recommendation System API Documentation
 
-For a step-by-step guide to deploying on [Railway](https://railway.app/?referralCode=alphasec), see [this](https://alphasec.io/how-to-deploy-a-python-flask-app-on-railway/) post, or click the button below.
+This documentation provides an overview of the endpoints and functionality of the Recommendation System API.
 
-[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/template/igzwwg?referralCode=alphasec)
+## Introduction
+
+The Recommendation System API is designed to provide recommendations based on user interactions and text analysis. It uses cosine similarity to recommend articles that are similar to those previously read by the user.
+
+## Endpoints
+
+## Technologies Used
+
+- Flask: The web framework for building the API.
+- scikit-learn: Used for cosine similarity calculations.
+- NLTK: Used for text preprocessing.
+- MySQL: The database used for storing article and user dat
