@@ -5,8 +5,9 @@ from routes.recommendations import recommendations_bp
 from routes.check import check_bp
 
 app = Flask(__name__)
-app.json.sort_keys = False
 CORS(app) 
+app.json.sort_keys = False
+
 
 # Register blueprints
 app.register_blueprint(articles_bp, url_prefix='/articles')
