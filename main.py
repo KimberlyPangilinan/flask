@@ -8,7 +8,7 @@ app = Flask(__name__)
 
 app.json.sort_keys = False
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 
 # Register blueprints

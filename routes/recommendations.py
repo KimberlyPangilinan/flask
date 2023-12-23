@@ -3,9 +3,7 @@ from db import db
 import pymysql
 import numpy as np
 from controllers.functions import get_article_recommendations, cosine_sim_overviews,cosine_sim_titles
-from flask_cors import CORS 
 recommendations_bp = Blueprint('recommendations',__name__)
-CORS(recommendations_bp) 
 @recommendations_bp.route('/', methods=['POST'])
 def get_reco_based_on_popularity():
     db.ping(reconnect=True)

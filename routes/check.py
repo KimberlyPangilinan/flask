@@ -3,10 +3,8 @@ from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.models import load_model
 from controllers.functions import  get_originality_score,load_tokenizer,load_label_encoder,preprocess_abstract,classify
 from db import db
-from flask_cors import CORS 
 
 check_bp = Blueprint('check',__name__)
-CORS(check_bp)
 @check_bp.route('/duplication', methods=['POST'])
 def check_originality():
     data = request.get_json()

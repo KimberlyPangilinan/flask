@@ -2,10 +2,10 @@ from flask import Flask, request, jsonify, Blueprint
 from db import db
 import pymysql
 from controllers.functions import get_article_recommendations, cosine_sim_overviews,cosine_sim_titles
-from flask_cors import CORS 
+
 
 articles_bp = Blueprint('articles',__name__)
-CORS(articles_bp) 
+
 @articles_bp.route('/', methods=['POST'])
 def get_articles_by_title():
 
