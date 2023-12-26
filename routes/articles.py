@@ -183,5 +183,31 @@ def insert_downloads():
             
         return jsonify({'message': f"{article_id} is successfully inserted to downloads log of user {author_id}"})
 
+# @articles_bp.route('/logs',methods=['GET'])
+# def insert_logs():
+#     args = request.args
+#     type = args.get('type')
+#     user_id = args.get('user_id')
+#     article_id = args.get('article_id')
+#     db.ping(reconnect=True)
+#     with db.cursor() as cursor:
+#         cursor.execute("INSERT INTO logs (article_id, author_id, type) VALUES (%s, %s, %s)", (article_id, user_id, type))
+#         db.commit()
+            
+#     return jsonify({'message':f"{article_id} successfully inserted to {type} log for {user_id} "})
+
+
+@articles_bp.route('/logs',methods=['POST'])
+def insert_log():
+    data = request.get_json()
+    type = data.get('type','others')
+    article_id = data['article_id']
+    author_id = data.get('author_id', '')
+    db.ping(reconnect=True)
+    with db.cursor() as cursor:
+        cursor.execute("INSERT INTO logs (article_id, author_id, type) VALUES (%s, %s, %s)", (article_id, author_id, type))
+        db.commit()
+            
+    return jsonify({'message':f"{article_id} successfully inserted to {type} log for {author_id} "})
 
 
