@@ -1,35 +1,16 @@
-import os
-import pymysql
-from dotenv import load_dotenv
 from flask import Flask, request, jsonify, Blueprint
-from flask_cors import CORS 
-
+from db import db
+import pymysql
 import numpy as np
 from controllers.functions import get_article_recommendations, cosine_sim_overviews,cosine_sim_titles
-
-load_dotenv()
-
 recommendations_bp = Blueprint('recommendations',__name__)
-CORS(recommendations_bp)
-
-
-db = pymysql.connect(
-    host=os.getenv('DATABASE_HOST'),
-    user=os.getenv('DATABASE_USER'),
-    password=os.getenv('DATABASE_PASSWORD'),
-    db=os.getenv('DATABASE_DB'),
-    connect_timeout=8800,
-    cursorclass=pymysql.cursors.DictCursor
-)
-
-@recommendations_bp.route('/popularity', methods=['POST'])
+@recommendations_bp.route('/', methods=['POST'])
 def get_reco_based_on_popularity():
-    
+    db.ping(reconnect=True)
     data = request.get_json()
     period = data.get('period', '') 
     category = data.get('category', 'total_interactions') 
-    
-    db.ping(reconnect=True)
+  
     with db.cursor() as cursor:
         if period == 'monthly':
             cursor.execute("""
@@ -82,7 +63,7 @@ def get_reco_based_on_popularity():
             }
 
 
-@recommendations_bp.route('/history/<int:author_id>', methods=['GET'])
+@recommendations_bp.route('/<int:author_id>', methods=['GET'])
 def get_reco_based_on_history(author_id):
     try:
         db.ping(reconnect=True)
