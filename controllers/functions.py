@@ -7,8 +7,21 @@ import pickle
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.models import load_model
 # from dotenv import load_dotenv
-from db import db
+# from db import db
+import os
+import pymysql
+from dotenv import load_dotenv
 
+load_dotenv()
+db = pymysql.connect(
+    host=os.getenv('DATABASE_HOST'),
+    user=os.getenv('DATABASE_USER'),
+    password=os.getenv('DATABASE_PASSWORD'),
+    db=os.getenv('DATABASE_DB'),
+    connect_timeout=8800,
+    cursorclass=pymysql.cursors.DictCursor
+)
+db.ping(reconnect=True)
 
 sql_query= """
 SELECT 
@@ -40,9 +53,9 @@ GROUP BY
 
            """
 db.ping(reconnect=True)
-cursor = db.cursor()
-cursor.execute(sql_query)
-data = cursor.fetchall()
+with db.cursor() as cursor:
+    cursor.execute(sql_query)
+    data = cursor.fetchall()
 
 
 id = [row['article_id'] for row in data]
@@ -239,7 +252,6 @@ def classify(input_data, model, label_encoder):
 
     ## Get the highest probability of classification
     output = np.argmax(output)
-    print(output )
 
     ## Get the journal name equivalent of the output of classification
     journal = label_encoder.inverse_transform([output])

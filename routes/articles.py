@@ -1,10 +1,29 @@
 from flask import Flask, request, jsonify, Blueprint
-from db import db
+# from db import db
+from flask_cors import CORS 
 import pymysql
 from controllers.functions import get_article_recommendations, cosine_sim_overviews,cosine_sim_titles
+import os
+import pymysql
+from dotenv import load_dotenv
 
+load_dotenv()
+db = pymysql.connect(
+    host=os.getenv('DATABASE_HOST'),
+    user=os.getenv('DATABASE_USER'),
+    password=os.getenv('DATABASE_PASSWORD'),
+    db=os.getenv('DATABASE_DB'),
+    connect_timeout=8800,
+    cursorclass=pymysql.cursors.DictCursor
+)
 
 articles_bp = Blueprint('articles',__name__)
+
+CORS(articles_bp, resources={r"/api/*": {"origins": "*"}})
+
+
+
+
 
 @articles_bp.route('/', methods=['POST'])
 def get_articles_by_title():
@@ -70,7 +89,7 @@ def get_articles_by_title():
             input_params = [f"%{input}%" for input in input_array]
             params = [f"%{date}%" for date in dates] + [f"%{journal}%"] + input_params + input_params + input_params + input_params
        
-            print(params)
+            # print(params)
             cursor.execute(f"{query}{sort}", params)
             result = cursor.fetchall()
             if len(result)==0:
@@ -151,7 +170,7 @@ def recommend_and_add_to_history():
        
  
         data = cursor.fetchall()
-        print(data,"data")
+        # print(data,"data")
         db.ping(reconnect=True)
         with db.cursor() as cursor:
             cursor.execute('INSERT INTO logs (article_id, author_id) VALUES (%s, %s)', (article_id, author_id))
