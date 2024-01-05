@@ -41,7 +41,7 @@ def get_articles_by_title():
             id_condition = ' OR '.join('article.article_id LIKE %s' for i in input_array)
             
             query = f'''
-                SELECT article.*, journal.journal,COUNT(CASE WHEN logs.type = 'read' THEN 1 END) AS total_reads,
+                SELECT article.*, journal.journal,COUNT(CASE WHEN logs.type = 'read' THEN 1 END) AS total_reads, COUNT(CASE WHEN logs.type = 'citation' THEN 1 END) AS total_citations,
                 COUNT(CASE WHEN logs.type = 'download' THEN 1 END) AS total_downloads, article_files.file_name, GROUP_CONCAT(DISTINCT CONCAT(contributors.firstname, ' ', contributors.lastname, '->', contributors.orcid) SEPARATOR ', ') AS contributors
                 FROM 
                 article 
@@ -116,6 +116,10 @@ def recommend_and_add_to_history():
                 CASE WHEN LOGS.type = 'download' THEN 1 ELSE 0
             END
             ) AS total_downloads,
+            SUM(
+                CASE WHEN LOGS.type = 'citation' THEN 1 ELSE 0
+            END
+            ) AS total_citations,
             c.contributors, c.contributors_A, c.contributors_B
             FROM
                 article
