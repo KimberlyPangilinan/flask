@@ -19,9 +19,9 @@ def get_articles_by_title():
         with db.cursor() as cursor:
             sort_param = request.args.get('sort', default=None)
             if sort_param == 'title':
-                sort = "ORDER BY title ASC"
+                sort = "ORDER BY article.title ASC"
             elif sort_param == 'publication-date':
-                sort = "ORDER BY date ASC"
+                sort = "ORDER BY article.date ASC"
             elif sort_param == 'recently-added':
                 sort = "ORDER BY article.date_added DESC"
             elif sort_param == 'popular':
@@ -64,14 +64,19 @@ def get_articles_by_title():
                     OR {id_condition}
                    
                 )
+                AND
+                article.status = 1
                 GROUP BY
-                article.article_id ;
+                article.article_id 
+                {sort}
+                ;
             '''
             input_params = [f"%{input}%" for input in input_array]
             params = [f"%{date}%" for date in dates] + [f"%{journal}%"] + input_params + input_params + input_params + input_params
        
             print(params)
-            cursor.execute(f"{query}{sort}", params)
+            print(f"{query}", params)
+            cursor.execute(f"{query}", params)
             result = cursor.fetchall()
             if len(result)==0:
                 return jsonify({"message": f"No results found for {input} . Try to use comma to separate keywords"})
