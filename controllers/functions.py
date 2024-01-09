@@ -34,6 +34,8 @@ LEFT JOIN
     article_files ON article.article_id = article_files.article_id
 LEFT JOIN 
     contributors ON article.article_id = contributors.article_id
+WHERE
+    article.status = 1
 GROUP BY
     article.article_id;
 
