@@ -25,7 +25,13 @@ def get_articles_by_title():
             elif sort_param == 'recently-added':
                 sort = "ORDER BY article.date_added DESC"
             elif sort_param == 'popular':
-                sort = "ORDER BY (total_reads + total_downloads) DESC"
+                sort = "ORDER BY total_interactions DESC"
+            elif sort_param == 'downloads':
+                sort = "ORDER BY total_downloads DESC"
+            elif sort_param == 'views':
+                sort = "ORDER BY total_reads DESC"
+            elif sort_param == 'citations':
+                sort = "ORDER BY total_citations DESC"
                     
             else:
                 sort = ""
@@ -41,7 +47,7 @@ def get_articles_by_title():
             id_condition = ' OR '.join('article.article_id LIKE %s' for i in input_array)
             
             query = f'''
-                SELECT article.*, journal.journal,COUNT(CASE WHEN logs.type = 'read' THEN 1 END) AS total_reads, COUNT(CASE WHEN logs.type = 'citation' THEN 1 END) AS total_citations,
+                SELECT article.*, journal.journal,COUNT(CASE WHEN logs.type = 'read' THEN 1 END) AS total_reads, COUNT(CASE WHEN logs.type = 'citation' THEN 1 END) AS total_citations, COUNT(logs.article_id) AS total_interactions,
                 COUNT(CASE WHEN logs.type = 'download' THEN 1 END) AS total_downloads, article_files.file_name, GROUP_CONCAT(DISTINCT CONCAT(contributors.firstname, ' ', contributors.lastname, '->', contributors.orcid) SEPARATOR ', ') AS contributors
                 FROM 
                 article 
@@ -74,8 +80,8 @@ def get_articles_by_title():
             input_params = [f"%{input}%" for input in input_array]
             params = [f"%{date}%" for date in dates] + [f"%{journal}%"] + input_params + input_params + input_params + input_params
        
-            print(params)
-            print(f"{query}", params)
+            # print(params)
+            # print(f"{query}", params)
             cursor.execute(f"{query}", params)
             result = cursor.fetchall()
             if len(result)==0:
