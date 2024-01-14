@@ -60,7 +60,7 @@ def get_articles_by_title():
                 LEFT JOIN(
                     SELECT article_id,
                         GROUP_CONCAT(
-                            DISTINCT CONCAT(lastname, ', ', SUBSTRING(firstname, 1, 1), '.', orcid) SEPARATOR ' ; '
+                            DISTINCT CONCAT(firstname, lastname, '->', orcid) SEPARATOR ' ; '
                         ) AS contributors
                     FROM
                         contributors
