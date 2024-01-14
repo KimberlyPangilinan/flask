@@ -43,12 +43,12 @@ def get_articles_by_title():
 
             title_conditions = ' OR '.join('article.title LIKE %s' for i in input_array)
             keyword_conditions = ' OR '.join('article.keyword LIKE %s' for i in input_array)
-            author_condition = ' OR '.join('article.author LIKE %s' for i in input_array)
+            author_condition = ' OR '.join("c.contributors LIKE %s" for i in input_array)
             id_condition = ' OR '.join('article.article_id LIKE %s' for i in input_array)
             
             query = f'''
                 SELECT article.*, journal.journal,COUNT(CASE WHEN logs.type = 'read' THEN 1 END) AS total_reads, COUNT(CASE WHEN logs.type = 'citation' THEN 1 END) AS total_citations, COUNT(logs.article_id) AS total_interactions,
-                COUNT(CASE WHEN logs.type = 'download' THEN 1 END) AS total_downloads, article_files.file_name, GROUP_CONCAT(DISTINCT CONCAT(contributors.firstname, ' ', contributors.lastname, '->', contributors.orcid) SEPARATOR ', ') AS contributors
+                COUNT(CASE WHEN logs.type = 'download' THEN 1 END) AS total_downloads, article_files.file_name, c.contributors
                 FROM 
                 article 
                   LEFT JOIN 
@@ -57,9 +57,16 @@ def get_articles_by_title():
                 logs ON article.article_id = logs.article_id 
                 LEFT JOIN 
                 article_files ON article.article_id = article_files.article_id
-                LEFT JOIN 
-                    contributors ON article.article_id = contributors.article_id
-            
+                LEFT JOIN(
+                    SELECT article_id,
+                        GROUP_CONCAT(
+                            DISTINCT CONCAT(lastname, ', ', SUBSTRING(firstname, 1, 1), '.', orcid) SEPARATOR ' ; '
+                        ) AS contributors
+                    FROM
+                        contributors
+                    GROUP BY
+                        article_id
+                ) AS c ON article.article_id = c.article_id
                 WHERE  {date_conditions}
                 AND article.journal_id LIKE %s
                 AND
