@@ -67,9 +67,10 @@ def get_articles_by_title():
                     GROUP BY
                         article_id
                 ) AS c ON article.article_id = c.article_id
-                WHERE   article.status = 1 AND
-                {date_conditions}
+                WHERE   
+                ({date_conditions})
                 AND article.journal_id LIKE %s
+                AND article.status = 1 
                 AND
                 (
                     {title_conditions}
