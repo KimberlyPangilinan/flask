@@ -11,7 +11,7 @@ def get_articles_by_title():
 
     data = request.get_json()
     dates = data.get('dates',[])
-    journal = data.get('journal','')
+    journal = data.get('journal',[])
     input = data.get('input','')
  
     try:
@@ -40,6 +40,11 @@ def get_articles_by_title():
                 date_conditions = '1=1'  
             else:
                 date_conditions = ' OR '.join(['article.publication_date LIKE %s' for _ in dates])
+            
+            if not journal or journal == []:
+                journal_conditions = '1=1'  
+            else:
+                journal_conditions = ' OR '.join(['article.journal_id LIKE %s' for _ in journal])
 
             title_conditions = ' OR '.join('article.title LIKE %s' for i in input_array)
             keyword_conditions = ' OR '.join('article.keyword LIKE %s' for i in input_array)
@@ -69,7 +74,7 @@ def get_articles_by_title():
                 ) AS c ON article.article_id = c.article_id
                 WHERE   
                 ({date_conditions})
-                AND article.journal_id LIKE %s
+                AND ({journal_conditions})
                 AND article.status = 1 
                 AND
                 (
@@ -87,7 +92,7 @@ def get_articles_by_title():
             '''
 
             input_params = [f"%{input}%" for input in input_array]
-            params = [f"%{date}%" for date in dates] + [f"%{journal}%"] + input_params + input_params + input_params + input_params
+            params = [f"%{date}%" for date in dates] + [f"%{j}%" for j in journal] + input_params + input_params + input_params + input_params
        
             # print(params)
             # print(f"{query}", params)
