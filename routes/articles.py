@@ -67,7 +67,8 @@ def get_articles_by_title():
                     GROUP BY
                         article_id
                 ) AS c ON article.article_id = c.article_id
-                WHERE  {date_conditions}
+                WHERE   article.status = 1 AND
+                {date_conditions}
                 AND article.journal_id LIKE %s
                 AND
                 (
@@ -77,13 +78,13 @@ def get_articles_by_title():
                     OR {id_condition}
                    
                 )
-                AND
-                article.status = 1
+                
                 GROUP BY
                 article.article_id 
                 {sort}
                 ;
             '''
+
             input_params = [f"%{input}%" for input in input_array]
             params = [f"%{date}%" for date in dates] + [f"%{journal}%"] + input_params + input_params + input_params + input_params
        
@@ -107,6 +108,17 @@ def get_articles_by_title():
     except Exception as e:
         print(e)
         return jsonify({'error': 'An error occurred while fetching article data.'}), 500
+
+@articles_bp.route('/years', methods=['GET'])
+def get_distinct_years():
+    db.ping(reconnect=True)
+    cursor = db.cursor()
+    distinctYearsSQL = 'SELECT GROUP_CONCAT(DISTINCT YEAR(publication_date) ORDER BY YEAR(publication_date) DESC) AS distinct_years FROM article;'
+            
+    cursor.execute(distinctYearsSQL)
+    years = cursor.fetchone()
+    
+    return jsonify(years),200
 
 @articles_bp.route('/logs/read', methods=['POST'])
 def recommend_and_add_to_history():
@@ -147,7 +159,7 @@ def recommend_and_add_to_history():
             LEFT JOIN(
                 SELECT article_id,
                     GROUP_CONCAT(
-                        DISTINCT CONCAT(lastname, ', ', SUBSTRING(firstname, 1, 1), '.', orcid) SEPARATOR ' ; '
+                        DISTINCT CONCAT(firstname, lastname, '->', orcid) SEPARATOR ' ; '
                     ) AS contributors,
                     GROUP_CONCAT(
                         DISTINCT CONCAT(lastname, ', ', firstname) SEPARATOR ' ; '
