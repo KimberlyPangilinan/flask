@@ -110,16 +110,25 @@ def get_articles_by_title():
         print(e)
         return jsonify({'error': 'An error occurred while fetching article data.'}), 500
 
-@articles_bp.route('/years', methods=['GET'])
-def get_distinct_years():
+@articles_bp.route('/filters', methods=['GET'])
+def get_filters():
     db.ping(reconnect=True)
     cursor = db.cursor()
-    distinctYearsSQL = 'SELECT GROUP_CONCAT(DISTINCT YEAR(publication_date) ORDER BY YEAR(publication_date) DESC) AS distinct_years FROM article;'
+    filtersSQL =  '''
+                        SELECT
+                            GROUP_CONCAT(
+                                DISTINCT YEAR(publication_date)
+                                ORDER BY YEAR(publication_date) DESC
+                            ) AS distinct_years,
+                            GROUP_CONCAT(DISTINCT journal.journal) AS journals
+                        FROM article
+                        LEFT JOIN journal ON article.journal_id = journal.journal_id;
+                        '''
             
-    cursor.execute(distinctYearsSQL)
-    years = cursor.fetchone()
+    cursor.execute(filtersSQL)
+    filters = cursor.fetchone()
     
-    return jsonify(years),200
+    return jsonify(filters),200
 
 @articles_bp.route('/logs/read', methods=['POST'])
 def recommend_and_add_to_history():
