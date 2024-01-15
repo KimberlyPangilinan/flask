@@ -119,16 +119,13 @@ def get_articles_by_title():
 def get_filters():
     db.ping(reconnect=True)
     cursor = db.cursor()
-    filtersSQL =  '''
-                        SELECT
-                            GROUP_CONCAT(
-                                DISTINCT YEAR(publication_date)
-                                ORDER BY YEAR(publication_date) DESC
-                            ) AS distinct_years,
-                            GROUP_CONCAT(DISTINCT journal.journal) AS journals
-                        FROM article
-                        LEFT JOIN journal ON article.journal_id = journal.journal_id;
-                        '''
+    filtersSQL ='''
+                SELECT
+                    GROUP_CONCAT(DISTINCT YEAR(publication_date) ORDER BY YEAR(publication_date) DESC) AS distinct_years,
+                    GROUP_CONCAT(DISTINCT CONCAT(journal.journal_id, ' -> ', journal.journal)) AS journals
+                FROM article
+                LEFT JOIN journal ON article.journal_id = journal.journal_id;
+                '''
             
     cursor.execute(filtersSQL)
     filters = cursor.fetchone()
