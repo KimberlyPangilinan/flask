@@ -8,6 +8,7 @@ def get_journal():
     param = request.args.get('id')
 
     try:
+        db.ping(reconnect=True)
         with db.cursor() as cursor:
             if param is None:
                 cursor.execute('SELECT * FROM journal')
