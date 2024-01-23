@@ -93,7 +93,7 @@ def get_articles_by_title():
             '''
 
             input_params = [f"%{input}%" for input in input_array]
-            params = [f"%{date}%" for date in dates] + [f"%{j}%" for j in journal] + input_params + input_params + input_params + input_params
+            params = [f"%{date}%" for date in dates] + [f"{j}" for j in journal] + input_params + input_params + input_params + input_params
        
             # print(params)
             # print(f"{query}", params)
