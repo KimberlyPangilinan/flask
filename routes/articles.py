@@ -53,16 +53,34 @@ def get_articles_by_title():
             id_condition = ' OR '.join('article.article_id LIKE %s' for i in input_array)
             
             query = f'''
-                SELECT article.*, journal.journal,COUNT(CASE WHEN logs.type = 'read' THEN 1 END) AS total_reads, COUNT(CASE WHEN logs.type = 'citation' THEN 1 END) AS total_citations, COUNT(logs.article_id) AS total_interactions,
-                COUNT(CASE WHEN logs.type = 'download' THEN 1 END) AS total_downloads, article_files.file_name, c.contributors
+                SELECT 
+                    article.*, 
+                    journal.journal,
+                    COALESCE(total_reads, 0) AS total_reads,
+                    COALESCE(total_citations, 0) AS total_citations,
+                    COALESCE(total_downloads, 0) AS total_downloads,
+                    COALESCE(total_interactions, 0) AS total_interactions,
+                    article_files.file_name, 
+                    c.contributors
                 FROM 
                 article 
                   LEFT JOIN 
-                journal ON article.journal_id = journal.journal_id 
+                    journal ON article.journal_id = journal.journal_id 
+                LEFT JOIN
+                    (
+                        SELECT
+                            article_id,
+                            COUNT(CASE WHEN logs.type = 'read' THEN 1 END) AS total_reads,
+                            COUNT(CASE WHEN logs.type = 'citation' THEN 1 END) AS total_citations,
+                            COUNT(CASE WHEN logs.type = 'download' THEN 1 END) AS total_downloads,
+                            COUNT(logs.article_id) AS total_interactions
+                        FROM
+                            logs
+                        GROUP BY
+                            article_id
+                    ) AS log_counts ON article.article_id = log_counts.article_id
                 LEFT JOIN 
-                logs ON article.article_id = logs.article_id 
-                LEFT JOIN 
-                article_files ON article.article_id = article_files.article_id
+                    article_files ON article.article_id = article_files.article_id
                 LEFT JOIN(
                     SELECT article_id,
                         GROUP_CONCAT(
@@ -151,23 +169,27 @@ def recommend_and_add_to_history():
                 journal.journal,
                 article.keyword,
                 article_files.file_name,
-                SUM(
-                    CASE WHEN LOGS.type = 'read' THEN 1 ELSE 0
-                END
-            ) AS total_reads,
-            SUM(
-                CASE WHEN LOGS.type = 'download' THEN 1 ELSE 0
-            END
-            ) AS total_downloads,
-            SUM(
-                CASE WHEN LOGS.type = 'citation' THEN 1 ELSE 0
-            END
-            ) AS total_citations,
+                COALESCE(total_reads, 0) AS total_reads,
+                    COALESCE(total_citations, 0) AS total_citations,
+                    COALESCE(total_downloads, 0) AS total_downloads,
+                    COALESCE(total_interactions, 0) AS total_interactions,
             c.contributors, c.contributors_A, c.contributors_B
             FROM
                 article
             LEFT JOIN journal ON article.journal_id = journal.journal_id
-            LEFT JOIN LOGS ON article.article_id = LOGS.article_id
+              LEFT JOIN
+                    (
+                        SELECT
+                            article_id,
+                            COUNT(CASE WHEN logs.type = 'read' THEN 1 END) AS total_reads,
+                            COUNT(CASE WHEN logs.type = 'citation' THEN 1 END) AS total_citations,
+                            COUNT(CASE WHEN logs.type = 'download' THEN 1 END) AS total_downloads,
+                            COUNT(logs.article_id) AS total_interactions
+                        FROM
+                            logs
+                        GROUP BY
+                            article_id
+                    ) AS log_counts ON article.article_id = log_counts.article_id
             LEFT JOIN article_files ON article.article_id = article_files.article_id
             LEFT JOIN(
                 SELECT article_id,

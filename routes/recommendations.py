@@ -14,7 +14,7 @@ def get_reco_based_on_popularity():
     with db.cursor() as cursor:
         if period == 'monthly':
             cursor.execute("""
-                   SELECT article.article_id, article.title, article.author, article.publication_date, article.abstract, journal.journal, article.keyword,
+                   SELECT article.article_id, article.title, article.author, article.publication_date, article.abstract, journal.journal, article.keyword, article.status
                     COUNT(logs.article_id) AS total_interactions,
                     COUNT(CASE WHEN logs.type = 'read' THEN 1 END) AS total_reads,
                     COUNT(CASE WHEN logs.type = 'download' THEN 1 END) AS total_downloads,
@@ -28,7 +28,7 @@ def get_reco_based_on_popularity():
                         SELECT 
                         	article_id, GROUP_CONCAT(DISTINCT CONCAT(firstname,' ',lastname,'->',orcid) SEPARATOR ', ') AS contributors
          				FROM contributors GROUP BY article_id) AS c ON article.article_id = c.article_id
-                WHERE DATE_FORMAT(logs.date, '%Y-%m') = DATE_FORMAT(CURRENT_DATE(), '%Y-%m')
+                WHERE DATE_FORMAT(logs.date, '%Y-%m') = DATE_FORMAT(CURRENT_DATE(), '%Y-%m') AND article.status=1
                 GROUP BY article.article_id
                 ORDER BY {} DESC
                 LIMIT 5;
@@ -36,7 +36,7 @@ def get_reco_based_on_popularity():
 
         elif period == '':
             cursor.execute("""
-                   SELECT article.article_id, article.title, article.author, article.publication_date, article.abstract, journal.journal, article.keyword,
+                   SELECT article.article_id, article.title, article.author, article.publication_date, article.abstract, journal.journal, article.keyword, article.status,
                     COUNT(logs.article_id) AS total_interactions,
                     COUNT(CASE WHEN logs.type = 'read' THEN 1 END) AS total_reads,
                     COUNT(CASE WHEN logs.type = 'download' THEN 1 END) AS total_downloads,
@@ -50,6 +50,7 @@ def get_reco_based_on_popularity():
                         SELECT 
                         	article_id, GROUP_CONCAT(DISTINCT CONCAT(firstname,' ',lastname,'->',orcid) SEPARATOR ', ') AS contributors
          				FROM contributors GROUP BY article_id) AS c ON article.article_id = c.article_id
+                WHERE article.status=1
                 GROUP BY article.article_id
                 ORDER BY {} DESC
                 LIMIT 5;
