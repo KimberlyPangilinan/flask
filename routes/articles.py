@@ -6,6 +6,7 @@ from controllers.functions import get_article_recommendations, cosine_sim_overvi
 
 articles_bp = Blueprint('articles',__name__)
 
+
 @articles_bp.route('/', methods=['POST'])
 def get_articles_by_title():
 
