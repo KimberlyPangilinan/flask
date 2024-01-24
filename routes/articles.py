@@ -84,13 +84,23 @@ def get_articles_by_title():
                 LEFT JOIN(
                     SELECT article_id,
                         GROUP_CONCAT(
-                            DISTINCT CONCAT(firstname, lastname, '->', orcid) SEPARATOR ', '
+                            DISTINCT CONCAT(firstname, ' ', lastname, '->', orcid, '->', contributor_type) SEPARATOR ', '
                         ) AS contributors
                     FROM
                         contributors
                     GROUP BY
                         article_id
                 ) AS c ON article.article_id = c.article_id
+                LEFT JOIN(
+                    SELECT article_id,
+                        GROUP_CONCAT(
+                            DISTINCT JSON_OBJECT('name', firstname, 'orcid', orcid) SEPARATOR ', '
+                        ) AS contributors
+                    FROM
+                        contributors
+                    GROUP BY
+                        article_id
+                ) AS contributorsDetails ON article.article_id = c.article_id
                 WHERE   
                 ({date_conditions})
                 AND ({journal_conditions})
@@ -170,26 +180,26 @@ def recommend_and_add_to_history():
                 article.keyword,
                 article_files.file_name,
                 COALESCE(total_reads, 0) AS total_reads,
-                    COALESCE(total_citations, 0) AS total_citations,
-                    COALESCE(total_downloads, 0) AS total_downloads,
-                    COALESCE(total_interactions, 0) AS total_interactions,
-            c.contributors, c.contributors_A, c.contributors_B
+                COALESCE(total_citations, 0) AS total_citations,
+                COALESCE(total_downloads, 0) AS total_downloads,
+                COALESCE(total_interactions, 0) AS total_interactions,
+                c.contributors, c.contributors_A, c.contributors_B
             FROM
                 article
             LEFT JOIN journal ON article.journal_id = journal.journal_id
-              LEFT JOIN
-                    (
-                        SELECT
-                            article_id,
-                            COUNT(CASE WHEN logs.type = 'read' THEN 1 END) AS total_reads,
-                            COUNT(CASE WHEN logs.type = 'citation' THEN 1 END) AS total_citations,
-                            COUNT(CASE WHEN logs.type = 'download' THEN 1 END) AS total_downloads,
-                            COUNT(logs.article_id) AS total_interactions
-                        FROM
-                            logs
-                        GROUP BY
-                            article_id
-                    ) AS log_counts ON article.article_id = log_counts.article_id
+            LEFT JOIN
+                (
+                    SELECT
+                        article_id,
+                        COUNT(CASE WHEN logs.type = 'read' THEN 1 END) AS total_reads,
+                        COUNT(CASE WHEN logs.type = 'citation' THEN 1 END) AS total_citations,
+                        COUNT(CASE WHEN logs.type = 'download' THEN 1 END) AS total_downloads,
+                        COUNT(logs.article_id) AS total_interactions
+                    FROM
+                        logs
+                    GROUP BY
+                        article_id
+                ) AS log_counts ON article.article_id = log_counts.article_id
             LEFT JOIN article_files ON article.article_id = article_files.article_id
             LEFT JOIN(
                 SELECT article_id,
