@@ -91,16 +91,7 @@ def get_articles_by_title():
                     GROUP BY
                         article_id
                 ) AS c ON article.article_id = c.article_id
-                LEFT JOIN(
-                    SELECT article_id,
-                        GROUP_CONCAT(
-                            DISTINCT JSON_OBJECT('name', firstname, 'orcid', orcid) SEPARATOR ', '
-                        ) AS contributors
-                    FROM
-                        contributors
-                    GROUP BY
-                        article_id
-                ) AS contributorsDetails ON article.article_id = c.article_id
+          
                 WHERE   
                 ({date_conditions})
                 AND ({journal_conditions})
@@ -121,7 +112,7 @@ def get_articles_by_title():
             '''
 
             input_params = [f"%{input}%" for input in input_array]
-            params = [f"%{date}%" for date in dates] + [f"%{j}" for j in journal] + input_params + input_params + input_params + input_params
+            params = [f"%{date}%" for date in dates] + [f"%{j}%" for j in journal] + input_params + input_params + input_params + input_params
        
             # print(params)
             # print(f"{query}", params)
@@ -204,7 +195,7 @@ def recommend_and_add_to_history():
             LEFT JOIN(
                 SELECT article_id,
                     GROUP_CONCAT(
-                        DISTINCT CONCAT(firstname, ' ', lastname, '->', orcid, '->', contributor_type) SEPARATOR ', '
+                        DISTINCT CONCAT(firstname, ' ', lastname, '->', orcid, '->', contributor_type) SEPARATOR ' ; '
                     ) AS contributors,
                     GROUP_CONCAT(
                         DISTINCT CONCAT(lastname, ', ', firstname) SEPARATOR ' ; '
