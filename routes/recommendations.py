@@ -14,7 +14,7 @@ def get_reco_based_on_popularity():
     with db.cursor() as cursor:
         if period == 'monthly':
             cursor.execute("""
-                   SELECT article.article_id, article.title, article.author, article.publication_date, article.abstract, journal.journal, article.keyword, article.status
+                   SELECT article.article_id, article.title, article.author, article.publication_date, article.abstract, journal.journal, article.keyword, article.status,
                     COUNT(logs.article_id) AS total_interactions,
                     COUNT(CASE WHEN logs.type = 'read' THEN 1 END) AS total_reads,
                     COUNT(CASE WHEN logs.type = 'download' THEN 1 END) AS total_downloads,
