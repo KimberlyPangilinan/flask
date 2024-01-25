@@ -84,7 +84,7 @@ def get_articles_by_title():
                 LEFT JOIN(
                     SELECT article_id,
                         GROUP_CONCAT(
-                            DISTINCT CONCAT(firstname, ' ', lastname, '->', orcid, '->', contributor_type) SEPARATOR ', '
+                            DISTINCT CONCAT(firstname, ' ', lastname, '->', orcid) SEPARATOR ', '
                         ) AS contributors
                     FROM
                         contributors
@@ -195,7 +195,7 @@ def recommend_and_add_to_history():
             LEFT JOIN(
                 SELECT article_id,
                     GROUP_CONCAT(
-                        DISTINCT CONCAT(firstname, ' ', lastname, '->', orcid, '->', contributor_type) SEPARATOR ' ; '
+                        DISTINCT CONCAT(firstname, ' ', lastname, '->', orcid, '->', contributor_type, '->', email) SEPARATOR ' ; '
                     ) AS contributors,
                     GROUP_CONCAT(
                         DISTINCT CONCAT(lastname, ', ', firstname) SEPARATOR ' ; '
