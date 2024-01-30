@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify,Blueprint
 from db import db
-
+import numpy as np
 journal_bp = Blueprint('journal',__name__)
 
 @journal_bp.route('/', methods=['GET'])
@@ -19,17 +19,30 @@ def get_journal():
     except Exception as e:
         return jsonify({"error": str(e)})
     
-# @journal_bp.route('/issues', methods=['GET'])
-# def get_issues():
-#     param = request.args.get('journal_id')
+@journal_bp.route('/issues', methods=['GET'])
+def get_issues():
+    param = request.args.get('journal_id')
 
-#     try:
-#         db.ping(reconnect=True)
-#         with db.cursor() as cursor:
-#             if param is None:
-#                 return jsonify({"message": "journal_id parameter is required"})
-#             else:
-#                 cursor.execute('SELECT * FROM issues WHERE journal_id = %s', (param,))
-#                 return jsonify({"issues": cursor.fetchall()})
-#     except Exception as e:
-#         return jsonify({"error": str(e)})
+    try:
+        db.ping(reconnect=True)
+        db.ping(reconnect=True)
+        with db.cursor() as cursor:
+            if param is None:
+                return jsonify({"message": "journal_id parameter is required"})
+            else:
+                cursor.execute('SELECT * FROM issues WHERE journal_id = %s', (param,))
+                issues = cursor.fetchall()
+
+                # Group issues by year
+                issuesPerYear = {}
+                for issue in issues:
+                    publication_year = issue.get('year')
+                    if publication_year:
+                        if publication_year not in issuesPerYear:
+                            issuesPerYear[publication_year] = []
+                        issuesPerYear[publication_year].append(issue)
+
+                # jsonify the grouped issues
+                return jsonify({"issuesPerYear": issuesPerYear})
+    except Exception as e:
+        return jsonify({"error": str(e)})

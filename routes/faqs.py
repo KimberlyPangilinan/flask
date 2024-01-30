@@ -13,7 +13,7 @@ def get_faqs():
         db.ping(reconnect=True)
         with db.cursor() as cursor:
             if limit is None:
-                cursor.execute('SELECT * FROM faqs where category = %s ',(category,))
+                cursor.execute('SELECT * FROM faqs')
                
             else:
                 cursor.execute('SELECT * FROM faqs where category = %s LIMIT %s',(category, limit))
