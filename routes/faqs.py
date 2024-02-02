@@ -16,7 +16,7 @@ def get_faqs():
                 cursor.execute('SELECT * FROM faqs')
                
             else:
-                cursor.execute('SELECT * FROM faqs where category = %s LIMIT %s',(category, limit))
+                cursor.execute('SELECT * FROM faqs where category = %s LIMIT %s',(category, int(limit)))
             return jsonify({"faqs": cursor.fetchall()})
   
     except Exception as e:
