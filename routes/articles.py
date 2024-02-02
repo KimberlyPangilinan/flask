@@ -169,7 +169,7 @@ def recommend_and_add_to_history():
                 article.*,
                 journal.journal,
                 article.keyword,
-                article_files.file_name,
+                article_final_files.file_name,
                 COALESCE(total_reads, 0) AS total_reads,
                 COALESCE(total_citations, 0) AS total_citations,
                 COALESCE(total_downloads, 0) AS total_downloads,
@@ -191,7 +191,7 @@ def recommend_and_add_to_history():
                     GROUP BY
                         article_id
                 ) AS log_counts ON article.article_id = log_counts.article_id
-            LEFT JOIN article_files ON article.article_id = article_files.article_id
+            LEFT JOIN article_final_files ON article.article_id = article_final_files.article_id
             LEFT JOIN(
                 SELECT article_id,
                     GROUP_CONCAT(
@@ -213,6 +213,7 @@ def recommend_and_add_to_history():
                 article.article_id = c.article_id
             WHERE
                 article.article_id = %s
+                AND article_final_files.copyedited=1
             GROUP BY
                 journal.journal_id,
                 journal.journal,
