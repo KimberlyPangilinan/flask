@@ -213,7 +213,6 @@ def recommend_and_add_to_history():
                 article.article_id = c.article_id
             WHERE
                 article.article_id = %s
-                AND article_final_files.copyedited=1
             GROUP BY
                 journal.journal_id,
                 journal.journal,
