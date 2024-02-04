@@ -14,7 +14,7 @@ def get_articles_by_title():
     dates = data.get('dates',[])
     journal = data.get('journal',[])
     input = data.get('input','')
- 
+    issue = data.get('issue')
     try:
         db.ping(reconnect=True)
         with db.cursor() as cursor:
@@ -46,6 +46,11 @@ def get_articles_by_title():
                 journal_conditions = '1=1'  
             else:
                 journal_conditions = ' OR '.join(['article.journal_id LIKE %s' for _ in journal])
+                
+            if not issue:
+                issue_conditions = '1=1'  
+            else:
+                issue_conditions = f'article.issues_id LIKE  {issue}' 
 
             title_conditions = ' OR '.join('article.title LIKE %s' for i in input_array)
             keyword_conditions = ' OR '.join('article.keyword LIKE %s' for i in input_array)
@@ -95,6 +100,7 @@ def get_articles_by_title():
                 WHERE   
                 ({date_conditions})
                 AND ({journal_conditions})
+                AND ({issue_conditions})
                 AND article.status = 1 
                 AND
                 (
@@ -112,10 +118,10 @@ def get_articles_by_title():
             '''
 
             input_params = [f"%{input}%" for input in input_array]
-            params = [f"%{date}%" for date in dates] + [f"%{j}%" for j in journal] + input_params + input_params + input_params + input_params
+            params = [f"%{date}%" for date in dates] + [f"%{j}%" for j in journal]  +input_params + input_params + input_params + input_params
        
             # print(params)
-            # print(f"{query}", params)
+            print(f"{query}", params)
             cursor.execute(f"{query}", params)
             result = cursor.fetchall()
             if len(result)==0:
