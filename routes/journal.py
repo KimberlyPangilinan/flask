@@ -46,3 +46,19 @@ def get_issues():
                 return jsonify({"issuesPerYear": issuesPerYear})
     except Exception as e:
         return jsonify({"error": str(e)})
+    
+@journal_bp.route(f'/issues/<int:issue_id>', methods=['GET'])
+def get_issue(issue_id):
+
+    try:
+        db.ping(reconnect=True)
+        with db.cursor() as cursor:
+            if issue_id is None:
+                return jsonify({"message": "issue_id parameter is required"})
+            else:
+                cursor.execute('SELECT * FROM issues WHERE journal_id = %s', (issue_id,))
+                issue = cursor.fetchone()
+
+                return jsonify( issue)
+    except Exception as e:
+        return jsonify({"error": str(e)})
