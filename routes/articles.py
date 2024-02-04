@@ -50,7 +50,7 @@ def get_articles_by_title():
             if not issue:
                 issue_conditions = '1=1'  
             else:
-                issue_conditions = f'article.issues_id LIKE  {issue}' 
+                issue_conditions = f'article.issues_id =  {issue}' 
 
             title_conditions = ' OR '.join('article.title LIKE %s' for i in input_array)
             keyword_conditions = ' OR '.join('article.keyword LIKE %s' for i in input_array)
@@ -65,7 +65,6 @@ def get_articles_by_title():
                     COALESCE(total_citations, 0) AS total_citations,
                     COALESCE(total_downloads, 0) AS total_downloads,
                     COALESCE(total_interactions, 0) AS total_interactions,
-                    article_files.file_name, 
                     c.contributors
                 FROM 
                 article 
@@ -84,8 +83,6 @@ def get_articles_by_title():
                         GROUP BY
                             article_id
                     ) AS log_counts ON article.article_id = log_counts.article_id
-                LEFT JOIN 
-                    article_files ON article.article_id = article_files.article_id
                 LEFT JOIN(
                     SELECT article_id,
                         GROUP_CONCAT(
