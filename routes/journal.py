@@ -56,7 +56,12 @@ def get_issue(issue_id):
             if issue_id is None:
                 return jsonify({"message": "issue_id parameter is required"})
             else:
-                cursor.execute('SELECT * FROM issues WHERE journal_id = %s', (issue_id,))
+                cursor.execute('''
+                        SELECT issues.*, journal.journal FROM issues
+                        LEFT JOIN journal ON issues.journal_id = journal.journal_id
+                        WHERE issues.journal_id = %s;
+                               
+                               ''', (issue_id,))
                 issue = cursor.fetchone()
 
                 return jsonify( issue)
