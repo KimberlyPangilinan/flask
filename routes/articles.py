@@ -159,15 +159,19 @@ def get_filters():
 def recommend_and_add_to_history():
     data = request.get_json()
     article_id = data['article_id']
-    author_id = data.get('author_id', '')
+    preview = data.get('preview', False)
+    author_id = data.get('author_id', 0)
      
     if not article_id:
         return jsonify({'message': 'Article_id must be provided.'}), 400
-
+    if  preview == True:
+        preview_condition = 'AND 1=1'  
+    else:
+        preview_condition = 'AND article.status = 1'  
     try:
         db.ping(reconnect=True)
         cursor = db.cursor()
-        cursor.execute("""
+        cursor.execute(f"""
             SELECT
                 article.*,
                 journal.journal,
@@ -216,6 +220,7 @@ def recommend_and_add_to_history():
                 article.article_id = c.article_id
             WHERE
                 article.article_id = %s
+                {preview_condition}
             GROUP BY
                 journal.journal_id,
                 journal.journal,
@@ -224,19 +229,25 @@ def recommend_and_add_to_history():
        
  
         data = cursor.fetchall()
-        print(data,"data")
-        db.ping(reconnect=True)
-        with db.cursor() as cursor:
-            cursor.execute('INSERT INTO logs (article_id, author_id) VALUES (%s, %s)', (article_id, author_id))
-            db.commit()
+        if preview == False and len(data) != 0:
+            db.ping(reconnect=True)
+            with db.cursor() as cursor:
+                cursor.execute('INSERT INTO logs (article_id, author_id) VALUES (%s, %s)', (article_id, author_id))
+                db.commit()
+            message =f"{article_id}  successfully inserted to read logs of user {author_id}"
+        elif preview == True:
+             message = f"This is just a preview of article {article_id}"
+        else:
+            message =f"{article_id} failed to be inserted on read logs of user {author_id}"
     except pymysql.Error as e:
+            
         return jsonify({'message': 'Error inserting read history.', 'error_details': str(e)}), 500
 
     recommendations = get_article_recommendations(article_id, cosine_sim_overviews, cosine_sim_titles)
 
     if isinstance(recommendations, list):  # Check if recommendations is a list
         return jsonify({
-            'message': f"{article_id} is successfully inserted to read logs of user {author_id}",
+            'message': message,
             'recommendations': recommendations[1:],
             'selected_article': data
         })
