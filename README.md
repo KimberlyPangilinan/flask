@@ -8,9 +8,3 @@ The Recommendation System API is designed to provide recommendations based on us
 
 ## Endpoints
 
-## Technologies Used
-
-- Flask: The web framework for building the API.
-- scikit-learn: Used for cosine similarity calculations.
-- NLTK: Used for text preprocessing.
-- MySQL: The database used for storing article and user dat
